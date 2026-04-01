@@ -1,128 +1,124 @@
+<div align="center">
+
 # 🌍 Vorld
-### Config-Driven 3D SaaS Platform & Interactive WebGL Engine
+### Professional Config-Driven 3D SaaS Platform & Interactive WebGL Engine
 
-A professional-grade 3D engine to visualize, customize, and deploy interactive WebGL environments with dynamic configuration.
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-green?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![Three.js](https://img.shields.io/badge/Three.js-WebGL-blue?style=for-the-badge&logo=three.js)](https://threejs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS_v4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-[Live Demo](#) • [GitHub](https://github.com/YumiNoona/Vorld)
-
-**React Three Fiber** • **Three.js** • **Next.js 14+** • **Supabase** • **Stripe** • **Tailwind CSS v4**
-
----
-
-## 📖 Summary
-
-**Vorld (Venus)** is a multi-tenant, config-driven 3D SaaS platform designed for creators, designers, and agencies to easily manage and publish interactive 3D portfolios. Available through a unified Next.js 14 Dashboard with integrated auth, project editing, and a high-performance Public Viewer.
-
-Unlike traditional hardcoded 3D experiences, Vorld implements a **Configuration-Driven Runtime**, ensuring the rendering core accepts a versioned JSON configuration. This empowers users to upload custom `.glb` models, define interactive behaviors (like hover highlights, click info panels, and URL triggers), and tweak lighting and themes — all without writing code.
-
-Built with a modern stack focusing on **Speed of Delight**, Vorld bridges the gap between raw WebGL development and user-friendly CMS management.
+[**Explore Live Demo**](#) • [**View Documentation**](#) • [**Report Bug**](https://github.com/YumiNoona/Vorld/issues)
 
 ---
 
-## ✨ Features
+**Vorld** is a state-of-the-art, multi-tenant 3D SaaS platform that bridges the gap between high-end WebGL engineering and user-friendly content management. 
 
-### 🎮 Core Engine Capabilities
-| Feature | Description |
-| :--- | :--- |
-| **Config-Driven Runtime** | Engine renders scenes based on dynamic JSON properties for full logic-content separation. |
-| **Stable Mesh Normalization** | Intelligently maps 3D nodes to stable IDs for consistent interactivity across model versions. |
-| **Interactive Behaviors** | Click & hover triggers, wobbly selection effects, and dynamic data panels. |
-| **Atmospheric Systems** | Pre-configured environment presets (Studio, City, Park) and high-quality contact shadows. |
+</div>
 
-### 🛠 Editor & Management
-| Feature | Description |
-| :--- | :--- |
-| **Unified Dashboard** | Central hub for project management, activity tracking, and quick-start actions. |
-| **Visual Mesh Explorer** | Real-time hierarchical navigation of uploaded 3D assets to target specific geometries. |
-| **Live Inline Preview** | Instant WebGL feedback within the dashboard during the configuration process. |
-| **Multi-step Publish** | Automated serialization and generation of public viewer URLs and embed codes. |
+## 📖 Overview
 
-### 🔐 Platform Capabilities
-| Feature | Description |
-| :--- | :--- |
-| **Supabase SSR Auth** | Secure authentication with server/browser client split and middleware-level route protection. |
-| **Tiered Pricing Model** | Plan-gated features (Free, Starter, Pro) with integrated billing UI and usage stats. |
-| **High Performance** | Optimized R3F render loops, conditional shadowing, and selective post-processing outlines. |
+**Vorld** (Venus) empowers creators and agencies to build, manage, and deploy interactive 3D environments using a **Configuration-Driven Runtime**. Instead of hardcoding interactions for every model, Vorld uses a unified JSON configuration system that controls everything from mesh-level highlights to complex data-triggered events.
+
+### Why Vorld?
+- **Zero-Code Interactivity**: Define hover effects, click actions, and camera transitions via the dashboard.
+- **Stable Mesh Mapping**: Our engine ensures that even if you re-upload your model, your established interactions remain linked to the correct geometries.
+- **Enterprise-Ready Auth**: Built on Supabase SSR with robust middleware-level route protection.
+- **Infinite Scalability**: Optimized R3F render loops and intelligent shadowing ensure performance even on mobile devices.
 
 ---
 
-## 🏗 Architecture & Tech Stack
+## ✨ Key Features
 
-| Layer | Technology | Purpose |
+### 🎮 The 3D Engine
+- **Dynamic Runtime**: Scenes are rendered based on versioned JSON properties, allowing for instant updates without redeploys.
+- **Atmospheric Controls**: Instant environment switching (Studio, City, Park) with high-fidelity contact shadows.
+- **Interaction Logic**: Support for mesh highlights, info-panels, and URL redirects.
+- **Selection System**: Selective post-processing outlines with customizable edge strength and blur.
+
+### 🛠 The Creator Dashboard
+- **Visual Mesh Explorer**: Navigate your 3D hierarchy in real-time to target specific nodes for interactivity.
+- **Real-time Synchronization**: Changes in the editor auto-save to the cloud and reflect instantly in the viewport.
+- **Asset Pipeline**: Secure `.glb` model uploads with versioning and folder-based ownership rules.
+- **Publishing Suite**: One-click deployments with generated share links and embed-friendly viewer URLs.
+
+---
+
+## 🏗 Tech Stack
+
+| Component | Technology | Rationale |
 | :--- | :--- | :--- |
-| **Framework** | Next.js 14/15/16 (App Router) | Unified auth, editor, and billing with advanced proxy logic. |
-| **Render Engine** | R3F / Three.js / Drei | Main 3D abstractions and helpers for WebGL rendering. |
-| **Post-processing** | @react-three/postprocessing | Custom selective outlines and visual fidelity tools. |
-| **Dashboard** | Next.js 16.2 (Turbopack) | High-speed protected dashboard and project editing suite. |
-| **Public Viewer** | Next.js Dynamic Routes | Optimized, edge-ready rendering at `/p/[username]/[slug]`. |
-| **UI Components** | Tailwind CSS v4 / Radix UI | Premium dark-mode first design system with Geist typography. |
-| **Auth & DB** | Supabase (@supabase/ssr) | Full SSR auth support with custom proxy-middleware. |
-| **Payments** | Stripe (API Ready) | Tiered subscription structure and billing management. |
+| **Framework** | Next.js 15+ (App Router) | Server-side rendering (SSR) for SEO and high-speed client navigation. |
+| **3D Rendering** | React Three Fiber / Three.js | The industry standard for declarative 3D in React. |
+| **Styling** | Tailwind CSS v4 | Cutting-edge performance with utility-first workflow. |
+| **Database/Auth** | Supabase (@supabase/ssr) | Real-time database and secure server-side auth management. |
+| **State** | Zustand | Lightweight and performant store for complex 3D editor states. |
+| **Animations** | Framer Motion | Smooth, premium UI transitions throughout the platform. |
 
 ---
 
-## 📂 Project Structure
+## 📂 Architecture
 
 ```text
 Vorld/
 ├── src/
-│   ├── app/                      # ─── Next.js App Router ───
-│   │   ├── (marketing)/          # Landing page, Features, Pricing
-│   │   ├── (auth)/               # Login & Signup with 3D Backgrounds
-│   │   ├── (app)/dashboard/      # Protected Project Management Hub
-│   │   │   ├── projects/         # Project Gallery & 3D Editor
-│   │   │   ├── billing/          # Subscription & Stats UI
-│   │   │   └── settings/         # Profile & Security settings
-│   │   ├── auth/callback/        # Supabase Redirect Handler
-│   │   └── p/[user]/[slug]/      # Public 3D Viewer Route
+│   ├── app/                      # Next.js App Router (Auth, Dashboard, Editor)
 │   ├── components/
-│   │   ├── editor/               # Viewport, MeshExplorer, InteractionPanel
-│   │   ├── landing/              # Hero, HowItWorks, LiveDemo
-│   │   ├── shared/               # Sidebar, ProjectCard, PublishSheet
-│   │   └── ui/                   # Shared Radix Primitives
-│   ├── lib/                      # Supabase & Helper Utils
-│   ├── proxy.ts                  # Server-side Route Protection (Proxy/Middleware)
-│   └── stores/                   # Zustand Global State
-├── public/                       # Static Assets (Models, Textures)
-├── README.md                     # Platform Documentation
-└── package.json                  # Dependencies & Scripts
+│   │   ├── editor/               # Viewport, MeshExplorer, Logic Panels
+│   │   ├── landing/              # Marketing Hero & Live Demo sections
+│   │   ├── shared/               # Navigation, Modal, and Utility UI
+│   │   └── ui/                   # Design system primitives (Tailwind v4)
+│   ├── lib/                      # Supabase SSR clients and shared logic
+│   ├── stores/                   # Zustand state managers (Editor, UI)
+│   └── proxy.ts                  # Advanced route protection & redirection
+├── supabase/                     # SQL Schemas, Triggers, and RLS policies
+└── public/                       # Static environments and fallback assets
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Prerequisites
-- **Node.js 18+**
-- **Supabase Account** (for Auth & Database)
-- **Stripe Account** (optional, for payments)
-
-### 2. Setup
+### 1. Installation
 ```bash
-# Clone repository
+# Clone the repository
 git clone https://github.com/YumiNoona/Vorld.git
-cd Vorld
 
 # Install dependencies
 npm install
 ```
 
-### 3. Environment Variables
-Create a `.env.local` file in the root:
+### 2. Environment Setup
+Create a `.env.local` file with your credentials:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-### 4. Run Development Server
+### 3. Deploy Database
+Run the contents of `supabase/schema.sql` in your Supabase SQL Editor to initialize tables, storage buckets, and RLS policies.
+
+### 4. Run Locally
 ```bash
 npm run dev
 ```
-Dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 
 ---
 
-## 📝 License
-License: MIT
-This project is licensed under the MIT License — see the LICENSE file for details.
+## 📝 License & Contributing
+
+Distributed under the **MIT License**. We welcome contributions that help push the boundaries of WebGL SaaS!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+<div align="center">
+ Built with ❤️ by the Vorld Team.
+</div>
