@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutGrid, 
@@ -14,7 +16,8 @@ import {
   Sun,
   ChevronLeft,
   ChevronRight,
-  User
+  User,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +32,10 @@ export function AppSidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+   const { theme, setTheme } = useTheme();
+  const [profile, setProfile] = useState<any>(null);
+  const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -37,9 +44,32 @@ export function AppSidebar() {
       if (window.innerWidth < 1280) setIsCollapsed(true);
     };
     handleResize();
-    window.addEventListener("resize", handleResize);
+     window.addEventListener("resize", handleResize);
+
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        setProfile(data);
+      }
+    }
+    loadProfile();
+
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [supabase]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const avatarUrl = profile?.avatar_url 
+    ? supabase.storage.from('avatars').getPublicUrl(profile.avatar_url).data.publicUrl 
+    : null;
 
   if (!mounted) return null;
 
@@ -61,7 +91,7 @@ export function AppSidebar() {
               <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="12" cy="12" r="3" fill="currentColor" />
             </svg>
-            <span className="font-semibold tracking-tight text-white">Venus</span>
+            <span className="text-xl font-bold tracking-tight text-white group-hover:text-accent transition-colors">Vorld</span>
           </Link>
         )}
         {isCollapsed && (
@@ -84,13 +114,21 @@ export function AppSidebar() {
 
       {/* User Info */}
       {!isCollapsed && (
-        <div className="p-4 flex items-center gap-3 border-b border-border-primary/50">
-          <div className="w-8 h-8 rounded-full bg-background-elevated flex items-center justify-center text-accent ring-1 ring-border-primary">
-            <User className="w-4 h-4" />
+         <div className="p-4 flex items-center gap-3 border-b border-border-primary/50">
+          <div className="w-8 h-8 rounded-full bg-background-elevated flex items-center justify-center text-accent ring-1 ring-border-primary overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-4 h-4" />
+            )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium text-white truncate">John Doe</span>
-            <span className="text-[10px] uppercase font-bold text-accent tracking-widest">Free Plan</span>
+            <span className="text-sm font-medium text-text-primary truncate">
+              {profile?.full_name || "New User"}
+            </span>
+            <span className="text-[10px] uppercase font-bold text-accent tracking-widest truncate">
+              {profile?.email?.split('@')[0] || "User"}
+            </span>
           </div>
         </div>
       )}
@@ -140,12 +178,34 @@ export function AppSidebar() {
           <HelpCircle className="w-4 h-4 shrink-0" />
           {!isCollapsed && <span>Help & Docs</span>}
         </button>
-        <button className={cn(
-          "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-text-secondary hover:bg-background-elevated hover:text-text-primary transition-all",
-          isCollapsed ? "justify-center" : "px-3"
-        )}>
-          <Moon className="w-4 h-4 shrink-0" />
-          {!isCollapsed && <span>Dark Theme</span>}
+        <button 
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className={cn(
+            "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-text-secondary hover:bg-background-elevated hover:text-text-primary transition-all",
+            isCollapsed ? "justify-center" : "px-3"
+          )}
+        >
+          {theme === "dark" ? (
+            <>
+              <Sun className="w-4 h-4 shrink-0" />
+              {!isCollapsed && <span>Light Mode</span>}
+            </>
+          ) : (
+            <>
+              <Moon className="w-4 h-4 shrink-0" />
+              {!isCollapsed && <span>Dark Mode</span>}
+            </>
+          )}
+        </button>
+         <button 
+          onClick={handleSignOut}
+          className={cn(
+            "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-destructive hover:bg-destructive-subtle/10 transition-all",
+            isCollapsed ? "justify-center" : "px-3"
+          )}
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>
     </motion.aside>

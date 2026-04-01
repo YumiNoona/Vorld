@@ -14,11 +14,27 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const MODEL_URL = "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/shoe/model.gltf";
+import { createClient } from "@/lib/supabase/client";
+import { Loader2 } from "lucide-react";
 
 export function MeshExplorer() {
-  const { nodes } = useGLTF(MODEL_URL) as any;
-  const { selectedMesh, setSelectedMesh, interactions } = useEditorStore();
+  const supabase = createClient();
+  const { modelPath, selectedMesh, setSelectedMesh, interactions } = useEditorStore();
+  
+  const modelUrl = React.useMemo(() => {
+    if (!modelPath) return null;
+    return supabase.storage.from('models').getPublicUrl(modelPath).data.publicUrl;
+  }, [modelPath, supabase]);
+
+  const { nodes, isLoading } = useGLTF(modelUrl || "") as any;
+
+  if (!modelUrl || isLoading) {
+    return (
+      <aside className="w-64 border-r border-border-primary bg-background shrink-0 flex flex-col z-10 items-center justify-center">
+        <Loader2 className="w-5 h-5 text-accent animate-spin" />
+      </aside>
+    );
+  }
   
   // Extract only meshes and groups
   const rootNodes = Object.values(nodes).filter((node: any) => 

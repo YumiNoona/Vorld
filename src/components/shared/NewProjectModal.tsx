@@ -20,13 +20,21 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function NewProjectModal({ children }: { children?: React.ReactNode }) {
+  const router = useRouter();
+  const supabase = createClient();
   const [step, setStep] = useState(1);
   const [file, setFile] = useState<File | null>(null);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -36,24 +44,91 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
     }
   }, []);
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
+    if (!file) return;
+    
     setIsUploading(true);
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 5;
-      setUploadProgress(prog);
-      if (prog >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setIsUploading(false);
-          setStep(2);
-        }, 500);
+    setUploadProgress(0);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Final Rule 1: Upload path MUST be ${user.id}/${file.name}
+      const filePath = `${user.id}/${file.name}`;
+
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 5, 95));
+      }, 200);
+
+      const { error: uploadError } = await supabase.storage
+        .from('models')
+        .upload(filePath, file, {
+          upsert: true // Allow overwriting if same name
+        });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (uploadError) throw uploadError;
+
+      setStep(2);
+      // Final Rule 2: DB MUST store user_id/file.glb
+      (window as any)._pendingModelPath = filePath;
+    } catch (error: any) {
+      toast.error(error.message || "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!name.trim()) {
+      toast.error("Project name is required");
+      return;
+    }
+
+    setIsCreating(true);
+    const modelPath = (window as any)._pendingModelPath;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          user_id: user.id,
+          name,
+          description,
+          model_path: modelPath,
+          is_public: false // Final Rule 3: Public toggle works via is_public
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Project creation error:", error);
+        throw error;
       }
-    }, 100);
+
+      console.log("Project created:", data);
+      toast.success("Project created successfully!");
+      
+      // Force a small delay to ensure DB consistency before redirect
+      setTimeout(() => {
+        router.push(`/editor/${data.id}`);
+      }, 500);
+    } catch (error: any) {
+      console.error("HandleCreateProject catch:", error);
+      toast.error(error.message || "Failed to create project");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
-    <Dialog onOpenChange={() => { setStep(1); setFile(null); setUploadProgress(0); }}>
+    <Dialog onOpenChange={() => { setStep(1); setFile(null); setUploadProgress(0); setName(""); setDescription(""); }}>
       <DialogTrigger asChild>
         {children || (
           <button className="h-10 px-4 flex items-center gap-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg shadow-lg active:scale-95 transition-all">
@@ -100,7 +175,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                            <Upload className="w-6 h-6" />
                         </div>
                         <div className="text-center">
-                           <p className="text-sm font-medium text-white">Drag & drop your file here</p>
+                           <p className="text-sm font-medium text-text-primary uppercase tracking-tight">Drag & drop your file here</p>
                            <p className="text-xs text-text-tertiary mt-1">Accepts .glb, .gltf — max 100MB</p>
                         </div>
                         <input
@@ -118,7 +193,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                             <FileBox className="w-6 h-6" />
                          </div>
                          <div className="text-center">
-                            <p className="text-sm font-medium text-white">{file.name}</p>
+                            <p className="text-sm font-medium text-text-primary">{file.name}</p>
                             <p className="text-xs text-text-tertiary mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                          </div>
                          <button 
@@ -133,7 +208,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                     {isUploading && (
                       <div className="w-full px-12 space-y-4">
                          <div className="flex items-center justify-between text-xs font-medium">
-                            <span className="text-text-secondary">Optimizing model...</span>
+                            <span className="text-text-secondary">Uploading model...</span>
                             <span className="text-accent">{uploadProgress}%</span>
                          </div>
                          <div className="h-1.5 w-full bg-background-elevated rounded-full overflow-hidden">
@@ -158,7 +233,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                     <button
                       disabled={!file || isUploading}
                       onClick={handleUpload}
-                      className="h-10 px-6 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-all flex items-center gap-2"
+                      className="h-10 px-6 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-all flex items-center gap-2 font-bold uppercase tracking-tight"
                     >
                       {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Next"}
                       {!isUploading && <ArrowRight className="w-4 h-4" />}
@@ -187,15 +262,19 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                         <label className="text-sm font-medium text-text-secondary">Project name *</label>
                         <input
                           type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
                           placeholder="My Awesome 3D Scene"
-                          className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus outline-none transition-all"
+                          className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus outline-none transition-all text-text-primary"
                         />
                      </div>
                      <div className="space-y-2">
                         <label className="text-sm font-medium text-text-secondary">Description (optional)</label>
                         <textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
                           placeholder="Tell us about this experience..."
-                          className="w-full h-24 p-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus outline-none transition-all resize-none"
+                          className="w-full h-24 p-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus outline-none transition-all resize-none text-text-primary"
                         />
                      </div>
                   </div>
@@ -208,9 +287,11 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                       Back
                     </button>
                     <button
-                      className="h-10 px-6 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-all"
+                      disabled={isCreating}
+                      onClick={handleCreateProject}
+                       className="h-10 px-6 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-all flex items-center gap-2 font-bold uppercase tracking-tight"
                     >
-                      Open in Editor
+                      {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Open in Editor"}
                     </button>
                   </div>
                 </motion.div>

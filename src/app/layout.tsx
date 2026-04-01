@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,29 +28,29 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Venus — Interactive 3D for everyone",
-    template: "%s | Venus",
+    default: "Vorld — Interactive 3D for everyone",
+    template: "%s | Vorld",
   },
   description: "Upload your GLB files, configure interactivity, and publish stunning 3D experiences in minutes. No code required.",
   keywords: ["3D", "WebGL", "Interactive", "No-code", "SaaS", "Three.js", "React Three Fiber"],
-  authors: [{ name: "Venus Team" }],
+  authors: [{ name: "Vorld Team" }],
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://venusapp.in",
-    siteName: "Venus",
-    title: "Venus — Interactive 3D for everyone",
+    url: "https://vorld.io",
+    siteName: "Vorld",
+    title: "Vorld — Interactive 3D for everyone",
     description: "The professional platform for interactive 3D web experiences.",
     images: ["/og-image.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Venus — Interactive 3D for everyone",
+    title: "Vorld — Interactive 3D for everyone",
     description: "The professional platform for interactive 3D web experiences.",
-    creator: "@venusapp",
+    creator: "@vorldapp",
     images: ["/og-image.png"],
   },
-  metadataBase: new URL("https://venusapp.in"),
+  metadataBase: new URL("https://vorld.io"),
 };
 
 export default function RootLayout({
@@ -64,8 +65,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} selection:bg-accent/30 selection:text-accent-foreground`}
     >
       <body className="min-h-screen bg-background font-sans text-text-primary antialiased">
-        {children}
-        <Toaster closeButton position="bottom-right" richColors />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster closeButton position="bottom-right" richColors />
+        </ThemeProvider>
       </body>
     </html>
   );

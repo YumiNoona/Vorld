@@ -55,9 +55,9 @@ export function Features() {
            transition={{ duration: 0.4 }}
            className="text-center mb-20"
         >
-          <h2 className="text-3xl font-semibold tracking-tight text-white mb-4">
-            Everything you need for interactive 3D
-          </h2>
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-6">
+          Everything You Need, Powered by Vorld
+        </h2>
           <p className="text-text-secondary max-w-xl mx-auto">
             A professional toolkit for the modern web.
           </p>

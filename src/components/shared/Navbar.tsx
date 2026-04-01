@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
 /**
  * Venus branding SVG Logo component
@@ -29,7 +30,7 @@ const Logo = () => (
       <circle cx="12" cy="12" r="3" fill="currentColor" />
     </svg>
     <span className="text-xl font-semibold tracking-tight text-text-primary">
-      Venus
+      Vorld
     </span>
   </div>
 );
@@ -43,6 +44,12 @@ const NAV_LINKS = [
 export function Navbar() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -82,6 +89,15 @@ export function Navbar() {
 
         {/* CTAs */}
         <div className="flex items-center gap-4">
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-md hover:bg-background-elevated text-text-secondary hover:text-text-primary transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          )}
           <Link
             href="/login"
             className="text-sm font-medium text-text-secondary hover:text-text-primary px-3 py-2 transition-colors duration-200"

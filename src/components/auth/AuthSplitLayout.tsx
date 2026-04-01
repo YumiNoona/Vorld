@@ -47,7 +47,7 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
             <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx="12" cy="12" r="3" fill="currentColor" />
           </svg>
-          <span className="text-xl font-semibold tracking-tight text-white">Venus</span>
+          <span className="text-xl font-semibold tracking-tight text-white">Vorld</span>
         </Link>
 
         {/* Floating Quote */}

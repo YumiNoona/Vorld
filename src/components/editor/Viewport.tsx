@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useRef, useEffect } from "react";
+import React, { Suspense, useRef, useEffect, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { 
   OrbitControls, 
@@ -14,16 +14,15 @@ import {
 import { Selection, Select, EffectComposer, Outline } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { useEditorStore } from "@/stores/editorStore";
+import { createClient } from "@/lib/supabase/client";
 
-const MODEL_URL = "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/shoe/model.gltf";
-
-function EditorModel() {
-  const { nodes, materials } = useGLTF(MODEL_URL) as any;
+function EditorModel({ url }: { url: string }) {
+  const { nodes, materials } = useGLTF(url) as any;
   const { selectedMesh, setSelectedMesh } = useEditorStore();
   
   return (
     <group dispose={null} scale={2}>
-      {Object.entries(nodes).map(([name, node]: [string, any]) => {
+      {useMemo(() => Object.entries(nodes).map(([name, node]: [string, any]) => {
         if (node.isMesh) {
           const isSelected = selectedMesh === name;
           return (
@@ -49,18 +48,36 @@ function EditorModel() {
           );
         }
         return null;
-      })}
+      }), [nodes, selectedMesh, setSelectedMesh])}
     </group>
   );
 }
 
 export function Viewport() {
-  const { setSelectedMesh } = useEditorStore();
+  const supabase = createClient();
+  const { modelPath, setSelectedMesh } = useEditorStore();
+
+  const modelUrl = useMemo(() => {
+    if (!modelPath) return null;
+    const client = createClient();
+    if (!client) return null;
+    return client.storage.from('models').getPublicUrl(modelPath).data.publicUrl;
+  }, [modelPath]);
+
+  const { camera: savedCamera } = useEditorStore();
+
+  if (!modelUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-background-subtle">
+        <p className="text-text-tertiary uppercase font-bold tracking-widest animate-pulse">Loading Model...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full cursor-grab active:cursor-grabbing">
       <Canvas shadows dpr={[1, 2]} gl={{ antialias: false, preserveDrawingBuffer: true }}>
-        <PerspectiveCamera makeDefault position={[0, 0, 4]} fov={45} />
+        <PerspectiveCamera makeDefault position={savedCamera.position} fov={45} />
         <ambientLight intensity={0.5} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.5} castShadow />
         
@@ -76,8 +93,8 @@ export function Viewport() {
               />
             </EffectComposer>
             
-            <Stage environment="studio" intensity={0.5} contactShadow={false} adjustCamera={false}>
-              <EditorModel />
+            <Stage environment="studio" intensity={0.5} shadows={false} adjustCamera={false}>
+              <EditorModel url={modelUrl} />
             </Stage>
           </Selection>
           
@@ -90,6 +107,30 @@ export function Viewport() {
           makeDefault 
           minPolarAngle={Math.PI / 4} 
           maxPolarAngle={Math.PI / 1.5} 
+          target={new THREE.Vector3(...savedCamera.target)}
+          onEnd={(e: any) => {
+            const pos = e.target.object.position;
+            const tar = e.target.target;
+            
+            // Avoid circular updates by checking for significant changes
+            const currentCamera = useEditorStore.getState().camera;
+            const posChanged = 
+              Math.abs(pos.x - currentCamera.position[0]) > 0.01 ||
+              Math.abs(pos.y - currentCamera.position[1]) > 0.01 ||
+              Math.abs(pos.z - currentCamera.position[2]) > 0.01;
+            
+            const tarChanged = 
+              Math.abs(tar.x - currentCamera.target[0]) > 0.01 ||
+              Math.abs(tar.y - currentCamera.target[1]) > 0.01 ||
+              Math.abs(tar.z - currentCamera.target[2]) > 0.01;
+
+            if (posChanged || tarChanged) {
+              useEditorStore.getState().setCamera(
+                [pos.x, pos.y, pos.z],
+                [tar.x, tar.y, tar.z]
+              );
+            }
+          }}
         />
         
         {/* Deselect on click away */}
@@ -103,7 +144,7 @@ export function Viewport() {
           }}
         >
           <planeGeometry args={[100, 100]} />
-          <meshShadowMaterial transparent opacity={0.4} />
+          <meshStandardMaterial transparent opacity={0} color="#000" />
         </mesh>
       </Canvas>
     </div>

@@ -124,8 +124,8 @@ export function Hero() {
           transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
           className="text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed mb-12"
         >
-          Upload your GLB file, configure what each object does on click or hover, 
-          and publish a shareable link — in minutes.
+          Experience the new standard in 3D web development. Vorld gives you the power to create, 
+          host, and share interactive 3D experiences in minutes.
         </motion.p>
 
         {/* CTA Buttons */}

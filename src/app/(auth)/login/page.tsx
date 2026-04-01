@@ -3,19 +3,48 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, Globe, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  
+  const router = useRouter();
+  const supabase = createClient();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Supabase Login logic
-    setTimeout(() => setIsLoading(false), 2000);
+    setError(null);
+
+    try {
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters.");
+      }
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      toast.success("Successfully logged in!");
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+      toast.error(err.message || "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -39,6 +68,20 @@ export default function LoginPage() {
         </motion.p>
       </div>
 
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-3"
+          >
+            <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-red-400 leading-relaxed">{error}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.form
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -52,8 +95,11 @@ export default function LoginPage() {
           <input
             type="email"
             required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="name@example.com"
-            className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus focus:ring-2 focus:ring-accent-subtle transition-all outline-none"
+            disabled={isLoading}
+            className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus focus:ring-2 focus:ring-accent-subtle transition-all outline-none disabled:opacity-50"
           />
         </div>
 
@@ -69,8 +115,11 @@ export default function LoginPage() {
             <input
               type={showPassword ? "text" : "password"}
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus focus:ring-2 focus:ring-accent-subtle transition-all outline-none"
+              disabled={isLoading}
+              className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus focus:ring-2 focus:ring-accent-subtle transition-all outline-none disabled:opacity-50"
             />
             <button
               type="button"
@@ -87,31 +136,16 @@ export default function LoginPage() {
           disabled={isLoading}
           className="w-full h-11 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-medium rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Logging in...</span>
+            </>
+          ) : (
+            "Log in"
+          )}
         </button>
       </motion.form>
-
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border-primary"></div>
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-4 text-text-tertiary">Or continue with</span>
-        </div>
-      </div>
-
-      {/* OAuth */}
-      <div className="grid grid-cols-2 gap-4">
-        <button className="h-10 border border-border-primary hover:border-border-strong rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-text-secondary transition-colors transition-all">
-          <Globe className="w-4 h-4" />
-          Google
-        </button>
-        <button className="h-10 border border-border-primary hover:border-border-strong rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-text-secondary transition-colors transition-all">
-          <Lock className="w-4 h-4" />
-          GitHub
-        </button>
-      </div>
 
       {/* Signup Link */}
       <p className="text-center text-sm text-text-tertiary">

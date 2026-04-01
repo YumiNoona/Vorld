@@ -24,17 +24,43 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function PublishSheet({ children }: { children: React.ReactNode }) {
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+
+interface PublishSheetProps {
+  children: React.ReactNode;
+  projectId: string;
+  initialIsPublished: boolean;
+  projectName: string;
+}
+
+export function PublishSheet({ 
+  children, 
+  projectId, 
+  initialIsPublished, 
+  projectName 
+}: PublishSheetProps) {
+  const supabase = createClient();
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
+  const [isPublished, setIsPublished] = useState(initialIsPublished);
   const [copied, setCopied] = useState(false);
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     setIsPublishing(true);
-    setTimeout(() => {
-      setIsPublishing(false);
-      setIsPublished(true);
-    }, 1500);
+    
+    const { error } = await supabase
+      .from('projects')
+      .update({ is_public: !isPublished })
+      .eq('id', projectId);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setIsPublished(!isPublished);
+      toast.success(isPublished ? "Project unpublished" : "Project published live!");
+    }
+    
+    setIsPublishing(false);
   };
 
   const copyToClipboard = (text: string) => {
@@ -43,7 +69,9 @@ export function PublishSheet({ children }: { children: React.ReactNode }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const publicUrl = "venusapp.in/p/alex/nike-air-max-2024";
+  const publicUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/view/${projectId}` 
+    : `vorld3d.com/view/${projectId}`;
 
   return (
     <Sheet>
@@ -131,8 +159,9 @@ export function PublishSheet({ children }: { children: React.ReactNode }) {
                           {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                        </button>
                        <a 
-                         href={`https://${publicUrl}`}
+                         href={publicUrl}
                          target="_blank"
+                         rel="noopener noreferrer"
                          className="h-10 px-3 rounded-lg bg-background-elevated hover:bg-background-overlay text-text-primary border border-border-primary transition-all flex items-center justify-center"
                        >
                           <ExternalLink className="w-4 h-4" />
@@ -145,10 +174,10 @@ export function PublishSheet({ children }: { children: React.ReactNode }) {
                     <label className="text-[10px] uppercase font-bold text-text-tertiary tracking-widest">Embed Code (iFrame)</label>
                     <div className="relative">
                        <pre className="p-4 rounded-lg bg-background border border-border-primary text-[11px] font-mono text-text-secondary overflow-x-auto">
-                          {`<iframe src="https://${publicUrl}" width="100%" height="600" frameborder="0"></iframe>`}
+                          {`<iframe src="${publicUrl}" width="100%" height="600" frameborder="0"></iframe>`}
                        </pre>
                        <button 
-                         onClick={() => copyToClipboard(`<iframe src="https://${publicUrl}" width="100%" height="600" frameborder="0"></iframe>`)}
+                         onClick={() => copyToClipboard(`<iframe src="${publicUrl}" width="100%" height="600" frameborder="0"></iframe>`)}
                          className="absolute top-2 right-2 p-1.5 rounded-md bg-background-elevated hover:bg-background-overlay text-text-tertiary transition-all"
                        >
                           <Copy className="w-3.5 h-3.5" />

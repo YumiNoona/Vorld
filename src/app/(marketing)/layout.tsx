@@ -14,7 +14,7 @@ export default function MarketingLayout({
       </main>
       <footer className="w-full h-16 border-t border-border-primary bg-background-subtle flex items-center justify-center text-sm text-text-tertiary">
         <div className="max-w-7xl mx-auto px-4 w-full flex items-center justify-between">
-          <p>© 2026 Venus. All rights reserved.</p>
+          <p>© 2026 Vorld. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-text-secondary">Product</a>
             <a href="#" className="hover:text-text-secondary">Twitter</a>

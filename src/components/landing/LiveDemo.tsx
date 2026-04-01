@@ -16,15 +16,23 @@ import { Info, MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as THREE from "three";
 
-// Using a sample GLB (Nike Shoe) for the demo
-const MODEL_URL = "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/shoe/model.gltf";
+// A more stable sample GLB from official Khronos Group samples
+const MODEL_URL = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/MaterialsVariantsShoe/glTF/MaterialsVariantsShoe.gltf";
 
 function ShoeModel({ activeMesh, onMeshClick }: { activeMesh: string | null; onMeshClick: (name: string) => void }) {
+  // We use a try-catch pattern or a simple null check because useGLTF is a hook
   const { nodes, materials } = useGLTF(MODEL_URL) as any;
   const group = useRef<THREE.Group>(null!);
 
+  if (!nodes) return (
+    <mesh scale={0.5}>
+      <boxGeometry args={[2, 2, 2]} />
+      <meshStandardMaterial color="#3b82f6" emissive="#3b82f6" emissiveIntensity={0.5} />
+    </mesh>
+  );
+
   return (
-    <group ref={group} dispose={null} scale={2} position={[0, -0.5, 0]}>
+    <group ref={group} dispose={null} scale={1.5} position={[0, -0.5, 0]}>
       {Object.entries(nodes).map(([name, node]: [string, any]) => {
         if (node.isMesh) {
           const isActive = activeMesh === name;
@@ -51,8 +59,8 @@ function ShoeModel({ activeMesh, onMeshClick }: { activeMesh: string | null; onM
                 <meshStandardMaterial 
                   attach="material" 
                   {...node.material} 
-                  emissive="var(--accent)" 
-                  emissiveIntensity={0.5} 
+                  emissive="#3b82f6" 
+                  emissiveIntensity={0.8} 
                 />
               )}
             </mesh>
@@ -64,15 +72,17 @@ function ShoeModel({ activeMesh, onMeshClick }: { activeMesh: string | null; onM
   );
 }
 
+// Updated MESH_DATA for the Khronos Shoe model
 const MESH_DATA: Record<string, { label: string; description: string }> = {
-  "mesh_0": { label: "Sole", description: "Durable rubber sole for maximum grip." },
-  "mesh_1": { label: "Upper", description: "Breathable mesh upper for all-day comfort." },
-  "mesh_2": { label: "Laces", description: "Performance laces that stay tied." },
+  "Shoe": { label: "Main Body", description: "Premium technical mesh for enhanced performance." },
+  "Sole": { label: "Performance Sole", description: "Multi-density foam for maximum energy return." },
+  "Laces": { label: "Tech Laces", description: "Integrated lacing system for a locked-in feel." },
 };
 
 export function LiveDemo() {
   const [activeMesh, setActiveMesh] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleMeshClick = (name: string) => {
     setActiveMesh(name);
@@ -96,31 +106,43 @@ export function LiveDemo() {
             See it in action
           </h2>
           <p className="text-text-secondary max-w-xl mx-auto">
-            Interact with the model below. Click any part to see how Venus handles mesh-level configuration.
+            Interact with the model below. Click any part to see how Vorld handles mesh-level configuration.
           </p>
         </div>
 
         {/* Demo Experience Window */}
         <div className="relative w-full max-w-5xl mx-auto aspect-[16/9] bg-[#0d0d0d] rounded-2xl border border-border-strong overflow-hidden shadow-2xl">
-          <Canvas shadows>
-            <PerspectiveCamera makeDefault position={[0, 0, 4]} fov={45} />
-            <ambientLight intensity={0.5} />
-            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.5} castShadow />
-            
-            <Suspense fallback={<Html center><span className="text-text-tertiary">Loading 3D Scene...</span></Html>}>
-              <ShoeModel activeMesh={activeMesh} onMeshClick={handleMeshClick} />
-              <ContactShadows position={[0, -0.8, 0]} opacity={0.4} scale={10} blur={2.5} far={0.8} />
-              <BakeShadows />
-            </Suspense>
+          {error ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-text-tertiary gap-4">
+              <span className="text-sm">Failed to load 3D Demo. Check your connection.</span>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs hover:bg-accent/20 transition-all font-bold uppercase tracking-wider"
+              >
+                Retry Loading
+              </button>
+            </div>
+          ) : (
+            <Canvas shadows onError={() => setError(true)}>
+              <PerspectiveCamera makeDefault position={[0, 0, 4]} fov={45} />
+              <ambientLight intensity={0.8} />
+              <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} castShadow />
+              
+              <Suspense fallback={<Html center><span className="text-text-tertiary whitespace-nowrap bg-black/50 px-3 py-1 rounded-full text-xs">Entering Metaverse...</span></Html>}>
+                <ShoeModel activeMesh={activeMesh} onMeshClick={handleMeshClick} />
+                <ContactShadows position={[0, -0.8, 0]} opacity={0.4} scale={10} blur={2.5} far={0.8} />
+                <BakeShadows />
+              </Suspense>
 
-            <OrbitControls 
-              enableZoom={false} 
-              minPolarAngle={Math.PI / 4} 
-              maxPolarAngle={Math.PI / 1.5}
-              autoRotate={!activeMesh}
-              autoRotateSpeed={0.5}
-            />
-          </Canvas>
+              <OrbitControls 
+                enableZoom={false} 
+                minPolarAngle={Math.PI / 4} 
+                maxPolarAngle={Math.PI / 1.5}
+                autoRotate={!activeMesh}
+                autoRotateSpeed={0.5}
+              />
+            </Canvas>
+          )}
 
           {/* Mesh Badges Overlay */}
           <div className="absolute top-6 left-6 flex flex-col gap-2">
