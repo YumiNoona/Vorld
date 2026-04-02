@@ -11,28 +11,43 @@ import {
   ContactShadows,
   BakeShadows
 } from "@react-three/drei";
+import * as THREE from "three";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useInteractionRuntime } from "@/hooks/useInteractionRuntime";
+import { InfoPanelOverlay } from "@/components/shared/InfoPanelOverlay";
 
 function ViewerModel({ url, interactions }: { url: string, interactions: any }) {
   const { nodes } = useGLTF(url) as any;
+  const { runInteraction } = useInteractionRuntime();
   
   return (
     <group dispose={null} scale={2}>
       {Object.entries(nodes).map(([name, node]: [string, any]) => {
         if (node.isMesh) {
+          const meshInteractions = interactions[name] || [];
           return (
             <mesh
               key={name}
               geometry={node.geometry}
               material={node.material}
+              matrix={node.matrixWorld}
+              matrixAutoUpdate={false}
               castShadow
               receiveShadow
               onClick={(e) => {
                 e.stopPropagation();
-                // Handle interactions here later
-                console.log("Clicked mesh:", name, interactions[name]);
+                runInteraction(e.object as THREE.Mesh, meshInteractions, "click");
+              }}
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                if (meshInteractions.length > 0) document.body.style.cursor = "pointer";
+                runInteraction(e.object as THREE.Mesh, meshInteractions, "hover");
+              }}
+              onPointerOut={(e) => {
+                document.body.style.cursor = "auto";
+                runInteraction(e.object as THREE.Mesh, meshInteractions, "unhover");
               }}
             />
           );
@@ -110,21 +125,32 @@ export default function ViewPage() {
         </div>
       </div>
 
-      <Canvas shadows dpr={[1, 2]}>
+      <Canvas 
+        shadows 
+        dpr={[1, 2]}
+        onCreated={({ gl }) => {
+          gl.shadowMap.type = THREE.PCFShadowMap;
+        }}
+      >
         <PerspectiveCamera 
           makeDefault 
           position={project.settings?.camera?.position || [0, 2, 5]} 
           fov={45} 
         />
         <ambientLight intensity={0.5} />
+        <spotLight
+          position={[10, 10, 10]}
+          angle={0.15}
+          penumbra={1}
+          intensity={1.5}
+          castShadow
+        />
         
         <Suspense fallback={null}>
           <Stage environment="studio" intensity={0.5} shadows={false} adjustCamera={false}>
             {modelUrl && <ViewerModel url={modelUrl} interactions={project.interactions || {}} />}
           </Stage>
           <ContactShadows position={[0, -0.8, 0]} opacity={0.4} scale={10} blur={2.5} far={0.8} />
-          <Environment preset="city" />
-          <BakeShadows />
         </Suspense>
 
         <OrbitControls 
@@ -136,10 +162,12 @@ export default function ViewPage() {
       </Canvas>
 
       {/* Powered by tag */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 flex items-center gap-2">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 flex items-center gap-2 z-10">
          <span className="text-[10px] text-text-tertiary font-medium">Powered by</span>
          <span className="text-[10px] text-white font-bold tracking-tighter uppercase">Vorld 3D</span>
       </div>
+
+      <InfoPanelOverlay />
     </div>
   );
 }

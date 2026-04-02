@@ -5,6 +5,7 @@ import { Viewport } from "@/components/editor/Viewport";
 import { MeshExplorer } from "@/components/editor/MeshExplorer";
 import { InteractionPanel } from "@/components/editor/InteractionPanel";
 import { PublishSheet } from "@/components/shared/PublishSheet";
+import { InfoPanelOverlay } from "@/components/shared/InfoPanelOverlay";
 import { 
   ChevronLeft, 
   Save, 
@@ -12,7 +13,8 @@ import {
   Check,
   ChevronRight,
   Globe,
-  Loader2
+  Loader2,
+  StopCircle
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -26,7 +28,9 @@ export default function EditorPage() {
   const router = useRouter();
   const id = params.id as string;
   const supabase = createClient();
-  const { isDirty, setDirty, setModelPath, setInteractions, setCamera, interactions, camera, reset } = useEditorStore();
+  const { isDirty, setDirty, setModelPath, setInteractions, setCamera, interactions, camera, reset, previewMode, setPreviewMode } = useEditorStore();
+  
+  const handlePreviewToggle = () => setPreviewMode(!previewMode);
   
   const [project, setProject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,19 +112,23 @@ export default function EditorPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
+    
+    // Explicit V2 storage format
+    const payload = {
+      updated_at: new Date().toISOString(),
+      interactions: {
+        version: 2,
+        items: interactions
+      },
+      settings: {
+        camera
+      }
+    };
+    
     const savePromise = async () => {
       const { error } = await supabase
         .from('projects')
-        .update({ 
-          updated_at: new Date().toISOString(),
-          interactions: interactions,
-          settings: {
-            camera: {
-              position: camera.position,
-              target: camera.target
-            }
-          }
-        })
+        .update(payload)
         .eq('id', id);
       
       if (error) throw error;
@@ -230,10 +238,7 @@ export default function EditorPage() {
             )}
             {showSavedFeedback ? "Saved!" : "Save"}
           </button>
-          <button className="h-8 px-3 rounded-md bg-background-elevated hover:bg-background-overlay text-xs font-medium text-text-primary transition-colors flex items-center gap-2">
-            <Play className="w-3 h-3" />
-            Preview
-          </button>
+          
           <PublishSheet projectId={id} initialIsPublished={project.is_public} projectName={project.name}>
             <button className="h-8 px-4 rounded-md bg-accent hover:bg-accent-hover text-xs font-medium text-white shadow-lg active:scale-95 transition-all flex items-center gap-2">
               Publish
@@ -250,6 +255,27 @@ export default function EditorPage() {
 
         {/* Center: 3D Viewport */}
         <div className="flex-1 relative bg-[#0d0d0d] overflow-hidden">
+          {previewMode && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in zoom-in duration-300">
+               <div className="px-6 py-2.5 rounded-full bg-accent border border-accent-border shadow-2xl shadow-accent/40 flex items-center gap-4 border-white/20">
+                  <div className="flex items-center gap-2">
+                     <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                     </span>
+                     <span className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">Testing Interactions</span>
+                  </div>
+                  <div className="h-4 w-px bg-white/20" />
+                  <button 
+                    onClick={() => setPreviewMode(false)}
+                    className="text-[10px] font-bold text-white/80 hover:text-white transition-colors flex items-center gap-1.5 uppercase tracking-widest group"
+                  >
+                    <StopCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                    Stop
+                  </button>
+               </div>
+            </div>
+          )}
           <Viewport />
           
           {/* Bottom info bar */}
@@ -275,6 +301,8 @@ export default function EditorPage() {
         {/* Right Panel: Interaction Config */}
         <InteractionPanel />
       </div>
+
+      <InfoPanelOverlay />
     </div>
   );
 }

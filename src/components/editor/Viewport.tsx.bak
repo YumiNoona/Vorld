@@ -15,128 +15,101 @@ import { Selection, Select, EffectComposer, Outline, selectionContext } from "@r
 import * as THREE from "three";
 import { useEditorStore } from "@/stores/editorStore";
 import { createClient } from "@/lib/supabase/client";
-import { useInteractionRuntime } from "@/hooks/useInteractionRuntime";
+
+const useSelection = () => {
+  const api = React.useContext(selectionContext);
+  const apiRef = React.useRef(api);
+  apiRef.current = api;
+  
+  return React.useMemo(() => ({
+    add: (obj: THREE.Object3D) => {
+      apiRef.current?.select(prev => prev.includes(obj) ? prev : [...prev, obj]);
+    },
+    remove: (obj: THREE.Object3D) => {
+      apiRef.current?.select(prev => prev.filter(o => o !== obj));
+    }
+  }), []);
+};
 
 const IndividualMesh = React.memo(function IndividualMesh({
   name,
   node,
   onSelect,
-  meshMap,
-  interactions,
-  previewMode
 }: {
   name: string;
   node: any;
-  onSelect: (name: string, multi: boolean) => void;
-  meshMap: React.MutableRefObject<Record<string, THREE.Mesh>>;
-  interactions: any[];
-  previewMode: boolean;
+  onSelect: (name: string) => void;
 }) {
-  const { runInteraction } = useInteractionRuntime();
+  const meshRef = React.useRef<THREE.Mesh>(null!);
+  const selection = useSelection();
+
+  // Read directly from store to avoid prop drilling and unnecessary re-renders
+  const isSelected = useEditorStore((s) => s.selectedMesh === name);
+
+  React.useEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+
+    if (isSelected) {
+      selection.add(mesh);
+    } else {
+      selection.remove(mesh);
+    }
+    
+    // No cleanup mutation to avoid infinite render loops
+  }, [isSelected]); // Critical: selection omitted from deps as it's stable via ref
 
   return (
-    <mesh
-      ref={(ref) => {
-        if (ref) meshMap.current[name] = ref;
-      }}
-      geometry={node.geometry}
-      material={node.material}
-      matrix={node.matrixWorld}
-      matrixAutoUpdate={false}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (previewMode) {
-          runInteraction(meshMap.current[name], interactions, "click");
-        } else {
-          onSelect(name, e.shiftKey);
-        }
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        document.body.style.cursor = "pointer";
-        if (previewMode) {
-          runInteraction(meshMap.current[name], interactions, "hover");
-        }
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = "auto";
-        if (previewMode) {
-          runInteraction(meshMap.current[name], interactions, "unhover");
-        }
-      }}
-      castShadow
-      receiveShadow
-    />
+    <Select>
+      <mesh
+        ref={meshRef}
+        geometry={node.geometry}
+        material={node.material}
+        matrix={node.matrixWorld}
+        matrixAutoUpdate={false}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(name);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "auto";
+        }}
+        castShadow
+        receiveShadow
+      />
+    </Select>
   );
 });
 
-function SelectionManager({ 
-  meshMap 
-}: { 
-  meshMap: React.MutableRefObject<Record<string, THREE.Mesh>> 
-}) {
-  const selectedMeshes = useEditorStore((s) => s.selectedMeshes);
-  const api = React.useContext(selectionContext);
-  const select = api?.select;
-
-  React.useEffect(() => {
-    if (!select) return;
-
-    if (!selectedMeshes || selectedMeshes.length === 0) {
-      select([]);
-      return;
-    }
-
-    const meshes = selectedMeshes.map(name => meshMap.current[name]).filter(Boolean);
-    select(meshes);
-  }, [selectedMeshes, select, meshMap]);
-
-  return null;
-}
-
 function EditorModel({ url }: { url: string }) {
-  const { nodes, animations } = useGLTF(url) as any;
-  const setSelectedMeshes = useEditorStore((state) => state.setSelectedMeshes);
-  const toggleMeshSelection = useEditorStore((state) => state.toggleMeshSelection);
-  const interactionsStore = useEditorStore((state) => state.interactions);
-  const previewMode = useEditorStore((state) => state.previewMode);
-  const setAnimations = useEditorStore((state) => state.setAnimations);
-  const meshMap = React.useRef<Record<string, THREE.Mesh>>({});
+  const { nodes } = useGLTF(url) as any;
+  const setSelectedMesh = useEditorStore((state) => state.setSelectedMesh);
 
-  React.useEffect(() => {
-    if (animations && animations.length > 0) {
-      setAnimations(animations.map((a: THREE.AnimationClip) => a.name));
-    } else {
-      setAnimations([]);
-    }
-  }, [animations, setAnimations]);
-
+  // useMemo at TOP LEVEL, not inside JSX. Only depends on nodes (stable after load)
   const meshEntries = React.useMemo(
     () =>
       Object.entries(nodes).filter(([, node]: [string, any]) => node.isMesh),
     [nodes]
   );
 
+  // Stable callback so IndividualMesh never re-renders due to handler identity change
   const handleSelect = React.useCallback(
-    (name: string, multi: boolean) => {
-      if (multi) toggleMeshSelection(name);
-      else setSelectedMeshes([name]);
-    },
-    [setSelectedMeshes, toggleMeshSelection]
+    (name: string) => setSelectedMesh(name),
+    [setSelectedMesh]
   );
 
   return (
     <group dispose={null} scale={2}>
-      <SelectionManager meshMap={meshMap} />
       {meshEntries.map(([name, node]: [string, any]) => (
         <IndividualMesh
           key={name}
           name={name}
           node={node}
           onSelect={handleSelect}
-          meshMap={meshMap}
-          interactions={interactionsStore[name] || []}
-          previewMode={previewMode}
         />
       ))}
     </group>
@@ -146,8 +119,7 @@ function EditorModel({ url }: { url: string }) {
 export function Viewport() {
   const modelPath = useEditorStore((state) => state.modelPath);
   const savedCamera = useEditorStore((state) => state.camera);
-  const setSelectedMeshes = useEditorStore((state) => state.setSelectedMeshes);
-  const previewMode = useEditorStore((state) => state.previewMode);
+  const setSelectedMesh = useEditorStore((state) => state.setSelectedMesh);
 
   const modelUrl = useMemo(() => {
     if (!modelPath) return null;
@@ -177,9 +149,6 @@ export function Viewport() {
         shadows
         dpr={[1, 2]}
         gl={{ antialias: false, preserveDrawingBuffer: true }}
-        onCreated={({ gl }) => {
-          gl.shadowMap.type = THREE.PCFShadowMap;
-        }}
       >
         <PerspectiveCamera
           makeDefault
@@ -198,15 +167,13 @@ export function Viewport() {
         <Suspense fallback={null}>
           <Selection>
             <EffectComposer multisampling={8} autoClear={false}>
-              {previewMode ? <></> : (
-                <Outline
-                  blur
-                  edgeStrength={100}
-                  width={1000}
-                  visibleEdgeColor={0x7c6aff}
-                  hiddenEdgeColor={0x7c6aff}
-                />
-              )}
+              <Outline
+                blur
+                edgeStrength={100}
+                width={1000}
+                visibleEdgeColor={0x7c6aff}
+                hiddenEdgeColor={0x7c6aff}
+              />
             </EffectComposer>
 
             <Stage
@@ -239,6 +206,7 @@ export function Viewport() {
             const pos = e.target.object.position;
             const tar = e.target.target;
 
+            // Avoid circular updates by checking for significant changes
             const currentCamera = useEditorStore.getState().camera;
             const posChanged =
               Math.abs(pos.x - currentCamera.position[0]) > 0.01 ||
@@ -268,7 +236,7 @@ export function Viewport() {
           receiveShadow
           onClick={(e) => {
             e.stopPropagation();
-            if (!previewMode) setSelectedMeshes([]);
+            setSelectedMesh(null);
           }}
         >
           <planeGeometry args={[100, 100]} />
@@ -278,3 +246,4 @@ export function Viewport() {
     </div>
   );
 }
+

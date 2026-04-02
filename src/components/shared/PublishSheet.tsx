@@ -218,16 +218,18 @@ export function PublishSheet({
           </div>
         </div>
 
-        {/* Footer: Pro Upsell */}
-        <div className="p-8 bg-background-subtle border-t border-border-primary">
-           <div className="mb-4 flex items-center gap-2">
-              <Lock className="w-3.5 h-3.5 text-accent" />
-              <p className="text-xs font-medium text-text-primary">Upgrade to Pro for custom domains</p>
-           </div>
-           <button className="w-full h-11 rounded-lg border border-accent-border bg-accent-subtle/50 text-accent font-medium text-sm hover:bg-accent-subtle transition-all">
-              View Pro plans
-           </button>
-        </div>
+        {/* Footer: Pro Upsell (Disabled until billing is implemented) */}
+        {false && (
+          <div className="p-8 bg-background-subtle border-t border-border-primary">
+             <div className="mb-4 flex items-center gap-2">
+                <Lock className="w-3.5 h-3.5 text-accent" />
+                <p className="text-xs font-medium text-text-primary">Upgrade to Pro for custom domains</p>
+             </div>
+             <button className="w-full h-11 rounded-lg border border-accent-border bg-accent-subtle/50 text-accent font-medium text-sm hover:bg-accent-subtle transition-all">
+                View Pro plans
+             </button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
