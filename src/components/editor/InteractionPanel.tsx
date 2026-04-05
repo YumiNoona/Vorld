@@ -11,7 +11,6 @@ import { ActionStack } from "./Interaction/ActionStack";
 
 export function InteractionPanel() {
   const { 
-    selectedMeshes, 
     interactions, 
     addInteraction, 
     animations, 
@@ -19,21 +18,25 @@ export function InteractionPanel() {
     setPreviewMode 
   } = useEditorStore();
 
-  const primaryMesh = selectedMeshes && selectedMeshes.length > 0 ? selectedMeshes[0] : null;
+  const primarySelection = useEditorStore((state) => state.primarySelection);
+  const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
+  const primaryMesh = primarySelection || (selectedMeshes.size > 0 ? Array.from(selectedMeshes)[0] : null);
   const meshInteractions = primaryMesh ? interactions[primaryMesh] || [] : [];
 
-  const headerText = selectedMeshes?.length > 1 
-     ? `${selectedMeshes.length} meshes selected`
+  const headerText = selectedMeshes?.size > 1 
+     ? `${selectedMeshes.size} Items Selected`
      : primaryMesh;
 
   if (!primaryMesh) {
     return (
-      <aside className="w-80 border-l border-border-primary bg-background shrink-0 flex flex-col items-center justify-center p-8 text-center bg-background-subtle">
-        <div className="w-12 h-12 rounded-2xl bg-background-elevated flex items-center justify-center text-text-tertiary/20 mb-4 border border-border-primary">
-          <MousePointer2 className="w-6 h-6" />
+      <aside className="w-[384px] border-l border-border-default bg-bg-secondary shrink-0 flex flex-col items-center justify-center p-10 text-center bg-bg-secondary/50 transition-all duration-300">
+        <div className="w-16 h-16 rounded-3xl bg-bg-primary flex items-center justify-center text-text-tertiary mb-8 border border-border-default shadow-xl">
+          <MousePointer2 className="w-6 h-6 opacity-40" />
         </div>
-        <h3 className="text-sm font-medium text-white mb-1">No meshes selected</h3>
-        <p className="text-xs text-text-tertiary">Select meshes in the viewport to configure interactivity.</p>
+        <h3 className="text-sm font-bold text-text-primary mb-3 uppercase tracking-widest">No Selection</h3>
+        <p className="text-[13px] text-text-secondary leading-relaxed max-w-[240px]">
+          Select an object in the viewport to configure its properties and interactions.
+        </p>
       </aside>
     );
   }
@@ -50,21 +53,23 @@ export function InteractionPanel() {
   };
 
   return (
-    <aside className="w-80 border-l border-border-primary bg-background shrink-0 flex flex-col z-10">
-      <div className="h-10 border-b border-border-primary px-4 flex items-center justify-between shrink-0">
+    <aside className="w-[384px] border-l border-border-default bg-bg-primary shrink-0 flex flex-col z-10 transition-all duration-300 group/panel">
+      <div className="h-12 border-b border-border-default px-4 flex items-center justify-between shrink-0 bg-bg-secondary/20">
         <div className="flex items-center gap-2 truncate">
-           <span className="text-xs font-semibold text-white truncate max-w-[200px] text-accent uppercase tracking-widest">{headerText}</span>
+           <span className="text-xs font-bold text-accent uppercase tracking-widest truncate max-w-[300px]">{headerText}</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-none">
+      <div className="flex-1 overflow-y-auto p-4 space-y-8 scrollbar-none">
         {meshInteractions.length === 0 && (
-          <div className="p-4 rounded-lg bg-background-subtle border border-dashed border-border-primary flex flex-col items-center justify-center text-center py-8">
-             <Zap className="w-5 h-5 text-text-tertiary/40 mb-3" />
-             <p className="text-xs text-text-tertiary">No interactions configured.</p>
+          <div className="p-6 rounded-xl bg-bg-secondary border border-dashed border-border-default flex flex-col items-center justify-center text-center py-10">
+             <div className="w-10 h-10 rounded-lg bg-bg-primary border border-border-default flex items-center justify-center mb-4">
+                <Zap className="w-4 h-4 text-text-tertiary opacity-40" />
+             </div>
+             <p className="text-[13px] text-text-secondary mb-6">No interactions configured.</p>
              <button 
                onClick={handleAddInteraction} 
-               className="mt-4 px-3 py-1.5 rounded bg-background-elevated hover:bg-white text-white hover:text-black transition-colors text-xs font-medium shadow shadow-black/20"
+               className="px-4 py-2 rounded-lg bg-bg-primary hover:bg-bg-secondary text-text-primary border border-border-default transition-all text-sm font-semibold shadow-sm active:scale-95"
              >
                Add Interaction
              </button>
@@ -72,9 +77,9 @@ export function InteractionPanel() {
         )}
 
         {meshInteractions.map((interaction: any) => (
-          <div key={interaction.id} className="space-y-0.5 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div key={interaction.id} className="space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
              <TriggerSettings interaction={interaction} />
-             <div className="bg-background border-x border-b border-border-primary rounded-b-xl overflow-hidden">
+             <div className="bg-bg-secondary border-x border-b border-border-default rounded-b-xl overflow-hidden shadow-inner">
                 <ActionStack 
                   interactionId={interaction.id} 
                   actions={interaction.actions || []} 
@@ -87,7 +92,7 @@ export function InteractionPanel() {
         {meshInteractions.length > 0 && (
            <button 
              onClick={handleAddInteraction} 
-             className="w-full h-10 border border-dashed border-border-primary rounded-xl flex items-center justify-center gap-2 text-text-tertiary hover:text-white hover:border-accent hover:bg-accent-subtle/10 transition-all text-xs font-medium"
+             className="w-full h-11 border border-dashed border-border-default rounded-xl flex items-center justify-center gap-2 text-text-secondary hover:text-text-primary hover:border-accent hover:bg-accent/5 transition-all text-sm font-semibold active:scale-[0.98]"
            >
              <Plus className="w-3.5 h-3.5" />
              New Trigger Block
@@ -95,17 +100,17 @@ export function InteractionPanel() {
         )}
       </div>
 
-      <div className="p-4 bg-background-subtle border-t border-border-primary">
+      <div className="p-4 bg-bg-secondary/30 border-t border-border-default">
          <button 
            onClick={() => setPreviewMode(!previewMode)}
            className={cn(
-             "w-full h-9 flex items-center justify-center gap-2 text-xs font-medium rounded-lg border transition-all shadow-lg",
+             "w-full h-10 flex items-center justify-center gap-2 text-sm font-bold rounded-lg border transition-all shadow-sm active:scale-[0.98]",
              previewMode 
-               ? "bg-accent border-accent-border text-white shadow-accent/20" 
-               : "bg-background-elevated hover:bg-background-overlay text-text-primary border-border-primary"
+               ? "bg-accent border-accent text-white" 
+               : "bg-bg-primary hover:bg-bg-secondary text-text-primary border-border-default"
            )}
          >
-            {previewMode ? <StopCircle className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {previewMode ? <StopCircle className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             {previewMode ? "Stop Testing" : "Test sequence"}
          </button>
       </div>

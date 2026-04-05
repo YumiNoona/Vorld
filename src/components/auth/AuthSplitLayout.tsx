@@ -58,7 +58,7 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="text-lg font-medium text-text-secondary leading-relaxed italic"
           >
-            "The professional choice for interactive 3D web experiences."
+            &quot;The professional choice for interactive 3D web experiences.&quot;
           </motion.p>
         </div>
       </div>

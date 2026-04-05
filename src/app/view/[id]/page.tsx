@@ -104,7 +104,7 @@ export default function ViewPage() {
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
         <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
         <p className="text-text-secondary max-w-md">
-          This project might be private or doesn't exist. Please contact the owner for access.
+          This project might be private or doesn&apos;t exist. Please contact the owner for access.
         </p>
       </div>
     );

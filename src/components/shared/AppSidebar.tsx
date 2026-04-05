@@ -38,7 +38,11 @@ export function AppSidebar() {
   const router = useRouter();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
     // Auto-collapse on smaller screens
     const handleResize = () => {
       if (window.innerWidth < 1280) setIsCollapsed(true);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ const PLANS = [
     description: "Perfect for hobbyists and side projects.",
     features: [
       "1 project",
-      "venusapp.in/p/...",
+      "vorld.so/p/...",
       "100MB storage",
       "500 views/mo",
     ],
@@ -27,7 +27,7 @@ const PLANS = [
     description: "For professionals building a portfolio.",
     features: [
       "10 projects",
-      "username.venusapp.in",
+      "username.vorld.so",
       "1GB storage",
       "10k views/mo",
       "Analytics",
@@ -57,40 +57,46 @@ export function Pricing() {
   const [isAnnual, setIsAnnual] = useState(false);
 
   return (
-    <section id="pricing" className="py-24 sm:py-32 bg-background-subtle relative overflow-hidden">
+    <section id="pricing" className="py-24 sm:py-32 bg-bg-secondary relative overflow-hidden">
       <div className="container max-w-7xl px-4 mx-auto text-center">
         <motion.div
            initial={{ opacity: 0, y: 12 }}
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
            transition={{ duration: 0.4 }}
-           className="mb-12"
+           className="mb-16"
         >
-          <h2 className="text-3xl font-semibold tracking-tight text-white mb-4">
-            Simple, transparent pricing
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary mb-6">
+            Simple, honest pricing
           </h2>
-          <p className="text-text-secondary max-w-xl mx-auto mb-8">
-            Start for free and upgrade as you grow.
+          <p className="text-text-secondary max-w-2xl mx-auto mb-10 text-lg leading-relaxed">
+            Choose the plan that fits your creative needs. Switch or cancel anytime.
           </p>
 
           {/* Segmented Control */}
-          <div className="flex items-center justify-center gap-4">
-            <span className={cn("text-sm font-medium transition-colors", !isAnnual ? "text-text-primary" : "text-text-tertiary")}>
-              Monthly
-            </span>
+          <div className="flex items-center justify-center gap-6 p-1.5 rounded-full bg-bg-primary border border-border-default w-fit mx-auto shadow-sm">
             <button
-              onClick={() => setIsAnnual(!isAnnual)}
-              className="relative w-12 h-6 rounded-full bg-background-surface border border-border-primary p-1 cursor-pointer transition-colors"
+               onClick={() => setIsAnnual(false)}
+               className={cn(
+                 "px-6 py-2 rounded-full text-sm font-semibold transition-all duration-150", 
+                 !isAnnual ? "bg-accent text-white shadow-md shadow-accent/20" : "text-text-tertiary hover:text-text-secondary"
+               )}
             >
-              <motion.div
-                animate={{ x: isAnnual ? 24 : 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="w-4 h-4 rounded-full bg-accent"
-              />
+              Monthly
             </button>
-            <span className={cn("text-sm font-medium transition-colors", isAnnual ? "text-text-primary" : "text-text-tertiary")}>
-              Annual <span className="text-success text-xs font-bold ml-1">2 months free</span>
-            </span>
+            <button
+               onClick={() => setIsAnnual(true)}
+               className={cn(
+                 "px-6 py-2 rounded-full text-sm font-semibold transition-all duration-150 flex items-center gap-2", 
+                 isAnnual ? "bg-accent text-white shadow-md shadow-accent/20" : "text-text-tertiary hover:text-text-secondary"
+               )}
+            >
+              Annual
+              <span className={cn(
+                "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest",
+                isAnnual ? "bg-white/20 text-white" : "bg-accent/10 text-accent"
+              )}>2 months free</span>
+            </button>
           </div>
         </motion.div>
 
@@ -103,40 +109,40 @@ export function Pricing() {
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
               className={cn(
-                "relative flex flex-col p-8 rounded-2xl bg-background border transition-all duration-300",
+                "relative flex flex-col p-8 rounded-2xl border transition-all duration-150",
                 plan.popular 
-                  ? "border-accent-border bg-accent-subtle/20 shadow-glow" 
-                  : "border-border-primary hover:border-border-strong"
+                  ? "bg-accent/5 border-accent shadow-sm" 
+                  : "bg-bg-primary border-border-default hover:border-text-tertiary"
               )}
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-accent text-[10px] font-bold text-white tracking-widest uppercase">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-accent text-[10px] font-bold text-white tracking-widest uppercase shadow-sm">
                   Most popular
                 </div>
               )}
 
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-accent tracking-widest uppercase mb-4">
+              <div className="mb-8 text-center">
+                <h3 className="text-xs font-bold text-text-tertiary tracking-[0.2em] uppercase mb-6">
                   {plan.name}
                 </h3>
-                <div className="flex items-baseline gap-1 justify-center mb-2">
-                  <span className="text-4xl font-semibold text-white tracking-tight">
+                <div className="flex items-baseline gap-1 justify-center mb-4">
+                  <span className="text-5xl font-bold text-text-primary tracking-tight">
                     ${isAnnual ? plan.yearlyPrice : plan.monthlyPrice}
                   </span>
                   <span className="text-text-tertiary text-sm font-medium">
                     /mo
                   </span>
                 </div>
-                <p className="text-sm text-text-secondary">
+                <p className="text-sm text-text-secondary leading-relaxed h-10">
                   {plan.description}
                 </p>
               </div>
 
-              <div className="flex-1 mb-8">
+              <div className="flex-1 mb-10">
                 <ul className="space-y-4 text-left">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3">
-                      <div className="w-5 h-5 rounded-full bg-accent-subtle/50 flex items-center justify-center shrink-0 mt-0.5">
+                    <li key={feature} className="flex items-start gap-4">
+                      <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
                         <Check className="w-3 h-3 text-accent" />
                       </div>
                       <span className="text-sm text-text-secondary leading-tight">
@@ -149,14 +155,14 @@ export function Pricing() {
 
               <button
                 className={cn(
-                  "w-full h-11 px-6 rounded-lg font-medium transition-all duration-200 active:scale-[0.97] flex items-center justify-center gap-2 group",
+                  "w-full h-12 px-6 rounded-xl text-sm font-bold uppercase tracking-widest transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 group",
                   plan.popular 
-                    ? "bg-accent hover:bg-accent-hover text-white shadow-lg" 
-                    : "bg-background-elevated hover:bg-background-overlay text-text-primary border border-border-primary hover:border-border-strong"
+                    ? "bg-accent hover:brightness-110 text-white shadow-lg shadow-accent/20" 
+                    : "bg-bg-secondary hover:bg-bg-primary text-text-primary border border-border-default"
                 )}
               >
                 {plan.cta}
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-150" />
               </button>
             </motion.div>
           ))}

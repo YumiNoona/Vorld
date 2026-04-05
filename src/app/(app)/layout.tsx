@@ -1,5 +1,5 @@
 import React from "react";
-import { AppSidebar } from "@/components/shared/AppSidebar";
+import { AppDock } from "@/components/shared/AppDock";
 
 export default function AppLayout({
   children,
@@ -7,16 +7,14 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background">
-      {/* Sidebar */}
-      <AppSidebar />
-
-      {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col h-full relative">
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border-strong scrollbar-track-transparent">
-          {children}
-        </div>
+    <div className="relative h-screen w-screen overflow-hidden bg-bg-primary font-sans">
+      {/* Main Content Area - Full width, clean background, no sidebar borders */}
+      <main className="h-full w-full overflow-y-auto scrollbar-none pb-32">
+        {children}
       </main>
+
+      {/* Floating iPad-style Dock with Glassmorphism */}
+      <AppDock />
     </div>
   );
 }

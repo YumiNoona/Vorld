@@ -71,10 +71,10 @@ export function Hero() {
 
   return (
     <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden py-24 sm:py-32">
-      {/* Background Effects */}
+      {/* Background Effects: Soft Emerald Glow at Top */}
       <motion.div 
         style={{ opacity }}
-        className="absolute top-0 inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(124,106,255,0.12),transparent)]"
+        className="absolute top-0 inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(16,185,129,0.08),transparent)]"
       />
       
       {/* 3D Orb Background */}
@@ -159,8 +159,8 @@ export function Hero() {
         </motion.p>
       </div>
 
-      {/* Hero Bottom Mask */}
-      <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+      {/* Hero Bottom Mask: Deep, smooth blend into the next section */}
+      <div className="absolute -bottom-1 inset-x-0 h-64 bg-gradient-to-t from-bg-primary via-bg-primary/50 to-transparent pointer-events-none z-20" />
     </section>
   );
 }

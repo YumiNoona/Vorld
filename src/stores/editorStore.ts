@@ -1,9 +1,12 @@
 import { create } from "zustand";
 
+export type RenderMode = 'solid' | 'texture' | 'wireframe';
+export type CameraMode = 'free' | 'top' | 'side';
+
 export interface InteractionAction {
   id: string;
   type: "highlight" | "glow" | "scale" | "camera_focus" | "audio" | "animation" | "info_panel" | "toggle" | "url";
-  config: any;
+  config: Record<string, any>;
 }
 
 export interface Interaction {
@@ -17,12 +20,18 @@ export interface Interaction {
 export interface StoredInteractions {
   version: number;
   items: Record<string, Interaction[]>;
+  projectTitle?: string;
 }
 
 interface EditorState {
   modelPath: string | null;
-  selectedMeshes: string[];
+  projectTitle: string;
+  selectedMeshes: Set<string>;
+  primarySelection: string | null;
   interactions: Record<string, Interaction[]>;
+  hiddenMeshes: Set<string>;
+  previousHidden: Set<string> | null;
+  isolatedId: string | null;
   camera: {
     position: [number, number, number];
     target: [number, number, number];
@@ -31,37 +40,55 @@ interface EditorState {
   isLoading: boolean;
   previewMode: boolean;
   animations: string[];
+  
+  // High Priority Modes
+  renderMode: RenderMode;
+  cameraMode: CameraMode;
+  
   viewerSettings: {
     showControls: boolean;
     autoRotate: boolean;
-    shadingMode: "material" | "solid" | "wireframe";
   };
 
   // Actions
+  setProjectTitle: (title: string) => void;
   setModelPath: (path: string | null) => void;
-  setSelectedMeshes: (meshNames: string[]) => void;
-  toggleMeshSelection: (meshName: string) => void;
+  selectMesh: (meshId: string, modifiers?: { ctrl?: boolean, shift?: boolean }) => void;
+  setSelectedMeshes: (meshIds: string[]) => void;
+  toggleMeshVisibility: (meshId: string) => void;
+  toggleIsolate: (meshId: string | null) => void;
+  renameMesh: (meshId: string, newName: string) => void;
+  
   addInteraction: (interaction: Interaction) => void;
   removeInteraction: (interactionId: string) => void;
   updateInteraction: (interactionId: string, updates: Partial<Interaction>) => void;
   addAction: (interactionId: string, action: InteractionAction) => void;
   removeAction: (interactionId: string, actionId: string) => void;
-  updateAction: (interactionId: string, actionId: string, config: any) => void;
+  updateAction: (interactionId: string, actionId: string, config: Record<string, any>) => void;
   reorderAction: (interactionId: string, oldIndex: number, newIndex: number) => void;
-  setInteractions: (rawInteractions: any) => void;
+  setInteractions: (rawInteractions: string | StoredInteractions | Record<string, Interaction[]>) => void;
   setCamera: (position: [number, number, number], target: [number, number, number]) => void;
   setDirty: (isDirty: boolean) => void;
   setLoading: (isLoading: boolean) => void;
   setPreviewMode: (preview: boolean) => void;
   setAnimations: (animations: string[]) => void;
-  setViewerSettings: (settings: Partial<{ showControls: boolean, autoRotate: boolean, shadingMode: "material" | "solid" | "wireframe" }>) => void;
+  
+  setRenderMode: (mode: RenderMode) => void;
+  setCameraMode: (mode: CameraMode) => void;
+  
+  setViewerSettings: (settings: Partial<{ showControls: boolean, autoRotate: boolean }>) => void;
   reset: () => void;
 }
 
-export const useEditorStore = create<EditorState>((set, get) => ({
+export const useEditorStore = create<EditorState>((set) => ({
   modelPath: null,
-  selectedMeshes: [],
+  projectTitle: "Untitled Vorld",
+  selectedMeshes: new Set(),
+  primarySelection: null,
   interactions: {},
+  hiddenMeshes: new Set(),
+  previousHidden: null,
+  isolatedId: null,
   camera: {
     position: [0, 2, 5],
     target: [0, 0, 0],
@@ -70,32 +97,99 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isLoading: false,
   previewMode: false,
   animations: [],
+  
+  renderMode: 'texture',
+  cameraMode: 'free',
+  
   viewerSettings: {
     showControls: true,
     autoRotate: false,
-    shadingMode: "material"
   },
 
+  setProjectTitle: (projectTitle) => set({ projectTitle, isDirty: true }),
   setModelPath: (path) => set({ modelPath: path }),
-  setSelectedMeshes: (meshNames) => set({ selectedMeshes: meshNames }),
-  toggleMeshSelection: (meshName) => set((state) => {
-    const isSelected = state.selectedMeshes.includes(meshName);
+  
+  setSelectedMeshes: (meshIds) => set({ 
+    selectedMeshes: new Set(meshIds),
+    primarySelection: meshIds.length > 0 ? meshIds[meshIds.length - 1] : null 
+  }),
+
+  selectMesh: (meshId, modifiers) => set((state) => {
+    const { ctrl, shift } = modifiers || {};
+    const newSelection = new Set(state.selectedMeshes);
+
+    if (ctrl) {
+      if (newSelection.has(meshId)) {
+        newSelection.delete(meshId);
+      } else {
+        newSelection.add(meshId);
+      }
+    } else if (shift) {
+      newSelection.add(meshId);
+    } else {
+      newSelection.clear();
+      newSelection.add(meshId);
+    }
+
+    // Safeguard 2: Selection Pruning
+    state.hiddenMeshes.forEach(id => newSelection.delete(id));
+
     return {
-      selectedMeshes: isSelected 
-        ? state.selectedMeshes.filter(m => m !== meshName)
-        : [...state.selectedMeshes, meshName]
+      selectedMeshes: newSelection,
+      primarySelection: newSelection.has(meshId) ? meshId : (newSelection.size > 0 ? Array.from(newSelection).pop()! : null)
     };
+  }),
+
+  toggleMeshVisibility: (meshId) => set((state) => {
+    const newHidden = new Set(state.hiddenMeshes);
+    if (newHidden.has(meshId)) newHidden.delete(meshId);
+    else newHidden.add(meshId);
+
+    // Safeguard 2: Selection Pruning on visibility change
+    const newSelection = new Set(state.selectedMeshes);
+    newHidden.forEach(id => newSelection.delete(id));
+
+    return { hiddenMeshes: newHidden, selectedMeshes: newSelection, isDirty: true };
+  }),
+
+  toggleIsolate: (meshId) => set((state) => {
+    // Turning off isolation
+    if (meshId === null || state.isolatedId === meshId) {
+      return {
+        isolatedId: null,
+        hiddenMeshes: state.previousHidden || new Set(), // Restore state
+        previousHidden: null
+      };
+    }
+    
+    // Starting isolation: Safeguard 1: Clone, don't reference
+    return {
+      isolatedId: meshId,
+      previousHidden: new Set(state.hiddenMeshes),
+      hiddenMeshes: new Set(), // During isolation, we might display only one mesh, but store-wise we clear hidden to handle the logic in Viewport
+      isDirty: true
+    };
+  }),
+
+  renameMesh: (meshId, newName) => set((state) => {
+    // In Vorld, interactions are keyed by mesh name/id. 
+    // We update the key in the mapping.
+    const newInteractions = { ...state.interactions };
+    if (newInteractions[meshId]) {
+      newInteractions[newName] = newInteractions[meshId];
+      delete newInteractions[meshId];
+    }
+    return { interactions: newInteractions, isDirty: true };
   }),
   
   addInteraction: (interaction) => set((state) => {
-    if (state.selectedMeshes.length === 0) return state;
+    if (state.selectedMeshes.size === 0) return state;
     const newInteractions = { ...state.interactions };
     
-    state.selectedMeshes.forEach(mesh => {
-      const meshInts = newInteractions[mesh] ? [...newInteractions[mesh]] : [];
-      // Deep clone interaction so each mesh has indepedent copy
+    state.selectedMeshes.forEach(meshId => {
+      const meshInts = newInteractions[meshId] ? [...newInteractions[meshId]] : [];
       meshInts.push(JSON.parse(JSON.stringify(interaction)));
-      newInteractions[mesh] = meshInts;
+      newInteractions[meshId] = meshInts;
     });
 
     return { interactions: newInteractions, isDirty: true };
@@ -105,11 +199,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
     
-    state.selectedMeshes.forEach(mesh => {
-      if (newInteractions[mesh]) {
-        const filtered = newInteractions[mesh].filter(i => i.id !== interactionId);
-        if (filtered.length !== newInteractions[mesh].length) {
-          newInteractions[mesh] = filtered;
+    state.selectedMeshes.forEach(meshId => {
+      if (newInteractions[meshId]) {
+        const filtered = newInteractions[meshId].filter(i => i.id !== interactionId);
+        if (filtered.length !== newInteractions[meshId].length) {
+          newInteractions[meshId] = filtered;
           changed = true;
         }
       }
@@ -122,9 +216,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(mesh => {
-      if (newInteractions[mesh]) {
-        newInteractions[mesh] = newInteractions[mesh].map(i => {
+    state.selectedMeshes.forEach(meshId => {
+      if (newInteractions[meshId]) {
+        newInteractions[meshId] = newInteractions[meshId].map(i => {
           if (i.id === interactionId) {
             changed = true;
             return { ...i, ...updates };
@@ -141,9 +235,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(mesh => {
-      if (newInteractions[mesh]) {
-        newInteractions[mesh] = newInteractions[mesh].map(i => {
+    state.selectedMeshes.forEach(meshId => {
+      if (newInteractions[meshId]) {
+        newInteractions[meshId] = newInteractions[meshId].map(i => {
           if (i.id === interactionId) {
             changed = true;
             return { ...i, actions: [...i.actions, JSON.parse(JSON.stringify(action))] };
@@ -160,9 +254,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(mesh => {
-      if (newInteractions[mesh]) {
-        newInteractions[mesh] = newInteractions[mesh].map(i => {
+    state.selectedMeshes.forEach(meshId => {
+      if (newInteractions[meshId]) {
+        newInteractions[meshId] = newInteractions[meshId].map(i => {
           if (i.id === interactionId) {
              changed = true;
              return { ...i, actions: i.actions.filter(a => a.id !== actionId) };
@@ -179,9 +273,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(mesh => {
-      if (newInteractions[mesh]) {
-        newInteractions[mesh] = newInteractions[mesh].map(i => {
+    state.selectedMeshes.forEach(meshId => {
+      if (newInteractions[meshId]) {
+        newInteractions[meshId] = newInteractions[meshId].map(i => {
           if (i.id === interactionId) {
              changed = true;
              return { 
@@ -201,9 +295,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(mesh => {
-      if (newInteractions[mesh]) {
-        newInteractions[mesh] = newInteractions[mesh].map(i => {
+    state.selectedMeshes.forEach(meshId => {
+      if (newInteractions[meshId]) {
+        newInteractions[meshId] = newInteractions[meshId].map(i => {
           if (i.id === interactionId) {
             changed = true;
             const newActions = [...i.actions];
@@ -220,7 +314,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   }),
   
   setInteractions: (rawInteractions) => set(() => {
-    // 1. JSON.parse Guard & Validation
     let parsed: any;
     try {
       if (!rawInteractions || typeof rawInteractions !== "string") {
@@ -228,37 +321,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       } else if (rawInteractions.trim().startsWith("{") || rawInteractions.trim().startsWith("[")) {
         parsed = JSON.parse(rawInteractions);
       } else {
-        console.warn("Invalid interactions format, expected JSON string or object:", typeof rawInteractions);
         parsed = {};
       }
-    } catch (e) {
-      console.error("Failed to parse interactions JSON:", e);
+    } catch {
       parsed = {};
     }
 
-    // Backend empty state
     if (!parsed || Object.keys(parsed).length === 0) {
       return { interactions: {}, isDirty: false };
     }
 
-    // Check version
     if (parsed.version === 2) {
-      return { interactions: parsed.items || {}, isDirty: false };
+      return { 
+        interactions: parsed.items || {}, 
+        projectTitle: parsed.projectTitle || "Untitled Vorld",
+        isDirty: false 
+      };
     }
 
-    // Version 1 backward compatibility mapper
-    console.log("Migrating V1 interactions to V2...");
     const migratedItems: Record<string, Interaction[]> = {};
     const oldItems = parsed.items ? parsed.items : parsed;
     
-    // Safety check if it's an array for some reason
     if (Array.isArray(oldItems)) {
         return { interactions: {}, isDirty: false }; 
     }
 
     Object.entries(oldItems).forEach(([meshName, ints]: [string, any]) => {
       if (!Array.isArray(ints)) return;
-      migratedItems[meshName] = ints.map((oldInt: any) => {
+      migratedItems[meshName] = (ints as any[]).map((oldInt: any) => {
         const id = oldInt.id || Math.random().toString(36).substr(2, 9);
         const type = oldInt.type;
         const config = oldInt.config || {};
@@ -290,8 +380,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           trigger: newTrigger,
           revertOnLeave,
           actions: [{
-            id: Math.random().toString(36).substr(2, 9),
-            type: newActionType as any,
+            id: Math.random().toString(36).substring(2, 11),
+            type: newActionType as InteractionAction["type"],
             config: config
           }]
         };
@@ -311,6 +401,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setPreviewMode: (previewMode) => set({ previewMode }),
   setAnimations: (animations) => set({ animations }),
   
+  setRenderMode: (renderMode) => set({ renderMode, isDirty: true }),
+  setCameraMode: (cameraMode) => set({ cameraMode, isDirty: true }),
+  
   setViewerSettings: (settings) => set((state) => ({ 
     viewerSettings: { ...state.viewerSettings, ...settings },
     isDirty: true
@@ -318,12 +411,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   reset: () => set({
     modelPath: null,
-    selectedMeshes: [],
+    projectTitle: "Untitled Vorld",
+    selectedMeshes: new Set(),
+    primarySelection: null,
     interactions: {},
+    hiddenMeshes: new Set(),
+    previousHidden: null,
+    isolatedId: null,
     camera: { position: [0, 2, 5], target: [0, 0, 0] },
     isDirty: false,
     isLoading: false,
     previewMode: false,
-    animations: []
+    animations: [],
+    renderMode: 'texture',
+    cameraMode: 'free'
   })
 }));

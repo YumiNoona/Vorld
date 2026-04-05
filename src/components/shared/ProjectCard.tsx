@@ -23,6 +23,7 @@ interface ProjectCardProps {
     updated_at: string;
     thumbnail_url?: string;
     model_path: string;
+    storage_size: number;
   };
   onDelete?: (id: string) => void;
   onUpdate?: (project: any) => void;
@@ -56,17 +57,30 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
     if (!confirm("Are you sure you want to delete this project?")) return;
     
     try {
-      // 1. Delete from storage if possible (optional but good practice)
-      // Note: model_path is user_id/filename
-      await supabase.storage.from('models').remove([project.model_path]);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-      // 2. Delete from DB
+      await supabase.storage.from('models').remove([project.model_path]);
       const { error } = await supabase
         .from('projects')
         .delete()
         .eq('id', project.id);
 
       if (error) throw error;
+
+      // Atomic Update: Decrement Profile Usage
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('storage_used')
+        .eq('id', user.id)
+        .single();
+      
+      const newTotal = Math.max(0, (profile?.storage_used || 0) - project.storage_size);
+      await supabase
+        .from('profiles')
+        .update({ storage_used: newTotal })
+        .eq('id', user.id);
+
       onDelete?.(project.id);
       toast.success("Project deleted");
     } catch (error: any) {
@@ -87,20 +101,20 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
-      className="group flex flex-col rounded-xl bg-background border border-border-primary hover:border-accent/40 overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md"
+      className="group flex flex-col rounded-2xl bg-bg-secondary/50 border border-border-default/50 hover:border-accent/40 overflow-hidden transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1"
     >
       {/* Thumbnail Area */}
-      <div className="relative aspect-video bg-background-subtle overflow-hidden">
+      <div className="relative aspect-video bg-bg-primary overflow-hidden">
         {project.thumbnail_url ? (
           <img 
             src={project.thumbnail_url} 
             alt={project.name} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-background-subtle to-background-elevated">
-             <div className="w-12 h-12 rounded-lg bg-accent/5 border border-accent/10 flex items-center justify-center text-accent/40 group-hover:text-accent/60 transition-colors">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="group-hover:scale-110 transition-transform duration-500 text-accent">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-bg-primary to-bg-secondary">
+             <div className="w-16 h-16 rounded-2xl bg-accent/5 border border-accent/10 flex items-center justify-center text-accent/20 group-hover:text-accent/60 transition-all duration-500">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition-transform duration-500 text-accent">
                    <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                    <circle cx="12" cy="12" r="3" fill="currentColor" />
                 </svg>
@@ -108,71 +122,71 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
           </div>
         )}
         
-        {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 z-10 pointer-events-none group-hover:pointer-events-auto">
+        {/* Hover Overlay - Glass Effect */}
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-3 z-10 pointer-events-none group-hover:pointer-events-auto">
            <Link 
              href={`/editor/${project.id}`}
-             className="h-9 px-4 bg-white text-black text-xs font-bold uppercase tracking-tight rounded-lg flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl"
+             className="h-10 px-6 bg-white text-black text-sm font-semibold rounded-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-2xl"
            >
-              Open Editor
-              <Edit2 className="w-3 h-3" />
+              Edit Project
+              <Edit2 className="w-3.5 h-3.5" />
            </Link>
         </div>
 
         {/* Visibility Badge */}
-        <div className="absolute top-3 left-3 z-20">
+        <div className="absolute top-4 left-4 z-20">
            <button 
              onClick={toggleVisibility}
              disabled={isUpdating}
              className={cn(
-               "px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest flex items-center gap-1.5 border backdrop-blur-md transition-all active:scale-95 disabled:opacity-50",
+               "px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 backdrop-blur-xl transition-all active:scale-95 disabled:opacity-50 border",
                project.is_public 
-                 ? "bg-success/10 text-success border-success/20 hover:bg-success/20" 
-                 : "bg-background-elevated/80 text-text-secondary border-border-primary hover:bg-background-elevated"
+                 ? "bg-accent/10 text-accent border-accent/20" 
+                 : "bg-bg-primary/80 text-text-secondary border-border-default"
              )}
            >
              {isUpdating ? (
                <Loader2 className="w-3 h-3 animate-spin" />
              ) : (
-               project.is_public ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />
+               project.is_public ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />
              )}
              {project.is_public ? 'Public' : 'Private'}
            </button>
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="p-4 flex items-center justify-between border-t border-border-primary/50">
+      {/* Content Area - Removed "ugly lines" (borders) */}
+      <div className="p-5 flex items-center justify-between">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-text-primary truncate uppercase tracking-tight">{project.name}</h3>
-          <p className="text-[10px] text-text-tertiary mt-0.5 uppercase font-medium tracking-wide">Updated {updatedAtLabel}</p>
+          <h3 className="text-sm font-semibold text-text-primary truncate">{project.name}</h3>
+          <p className="text-[11px] text-text-tertiary mt-1 font-medium">Updated {updatedAtLabel}</p>
         </div>
 
         <DropdownMenu>
            <DropdownMenuTrigger asChild>
-              <button className="p-1.5 rounded-lg hover:bg-background-elevated text-text-tertiary hover:text-text-primary transition-colors">
+              <button className="p-2 rounded-xl hover:bg-bg-primary text-text-tertiary hover:text-text-primary transition-all">
                  <MoreVertical className="w-4 h-4" />
               </button>
            </DropdownMenuTrigger>
-           <DropdownMenuContent align="end" className="w-48 bg-background-overlay border-border-primary">
-              <DropdownMenuItem asChild>
-                <Link href={`/editor/${project.id}`} className="text-xs font-bold uppercase tracking-tight gap-2 cursor-pointer">
-                   <Edit2 className="w-3.5 h-3.5" /> Edit project
+           <DropdownMenuContent align="end" className="w-56 bg-bg-primary/95 backdrop-blur-2xl border-white/5 shadow-2xl p-1 rounded-xl">
+              <DropdownMenuItem asChild className="rounded-lg">
+                <Link href={`/editor/${project.id}`} className="text-xs font-semibold gap-3 cursor-pointer py-2.5">
+                   <Edit2 className="w-4 h-4" /> Edit project
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs font-bold uppercase tracking-tight gap-2 cursor-pointer" onClick={toggleVisibility}>
-                 {project.is_public ? <Lock className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+              <DropdownMenuItem className="text-xs font-semibold gap-3 cursor-pointer py-2.5 rounded-lg" onClick={toggleVisibility}>
+                 {project.is_public ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
                  Make {project.is_public ? 'Private' : 'Public'}
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs font-bold uppercase tracking-tight gap-2 cursor-pointer">
-                 <BarChart2 className="w-3.5 h-3.5" /> Analytics
+              <DropdownMenuItem className="text-xs font-semibold gap-3 cursor-pointer py-2.5 rounded-lg">
+                 <BarChart2 className="w-4 h-4" /> Analytics
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border-primary" />
+              <DropdownMenuSeparator className="bg-white/5 mx-2" />
               <DropdownMenuItem 
                 onClick={handleDelete}
-                className="text-xs font-bold uppercase tracking-tight gap-2 text-destructive hover:text-destructive hover:bg-destructive-subtle/10 cursor-pointer"
+                className="text-xs font-semibold gap-3 py-2.5 rounded-lg text-red-500 hover:text-red-500 hover:bg-red-500/10 cursor-pointer"
               >
-                 <Trash2 className="w-3.5 h-3.5" /> Delete project
+                 <Trash2 className="w-4 h-4" /> Delete project
               </DropdownMenuItem>
            </DropdownMenuContent>
         </DropdownMenu>

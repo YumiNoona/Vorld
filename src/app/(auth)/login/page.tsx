@@ -149,7 +149,7 @@ export default function LoginPage() {
 
       {/* Signup Link */}
       <p className="text-center text-sm text-text-tertiary">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/signup" className="text-accent hover:text-accent-hover font-medium">
           Sign up
         </Link>

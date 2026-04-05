@@ -46,6 +46,7 @@ email text unique,
 full_name text,
 avatar_url text,
 bio text,
+storage_used bigint default 0,
 updated_at timestamptz default now()
 );
 
@@ -75,6 +76,7 @@ name text not null,
 description text,
 model_path text,
 thumbnail_url text,
+storage_size bigint default 0,
 settings jsonb default '{}'::jsonb,
 interactions jsonb default '[]'::jsonb,
 is_public boolean default false,

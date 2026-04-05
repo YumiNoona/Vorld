@@ -8,7 +8,7 @@ import { ArrowRight, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 /**
- * Venus branding SVG Logo component
+ * Vorld branding SVG Logo component
  */
 const Logo = () => (
   <div className="flex items-center gap-2 group">
@@ -38,16 +38,16 @@ const Logo = () => (
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Docs", href: "https://docs.venusapp.in" },
+  { label: "Docs", href: "https://docs.vorld.so" },
 ];
 
 export function Navbar() {
-  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -62,9 +62,9 @@ export function Navbar() {
   return (
     <nav
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-300 border-b",
+        "fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-150 border-b",
         isScrolled 
-          ? "bg-background/80 backdrop-blur-xl border-border-primary shadow-sm" 
+          ? "bg-bg-primary/80 backdrop-blur-xl border-border-default shadow-sm" 
           : "bg-transparent border-transparent"
       )}
     >
@@ -74,13 +74,13 @@ export function Navbar() {
           <Logo />
         </Link>
 
-        {/* Links (Desktop) */}
+        {/* Links (Desktop) - Standard Slate Text */}
         <div className="hidden md:flex items-center gap-8">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200"
+              className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-150"
             >
               {link.label}
             </Link>
@@ -92,7 +92,7 @@ export function Navbar() {
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-md hover:bg-background-elevated text-text-secondary hover:text-text-primary transition-colors"
+              className="p-2 rounded-md hover:bg-bg-secondary text-text-secondary hover:text-text-primary transition-colors"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -100,16 +100,16 @@ export function Navbar() {
           )}
           <Link
             href="/login"
-            className="text-sm font-medium text-text-secondary hover:text-text-primary px-3 py-2 transition-colors duration-200"
+            className="text-sm font-medium text-text-secondary hover:text-text-primary px-3 py-2 transition-colors duration-150"
           >
             Login
           </Link>
           <Link
             href="/signup"
-            className="group inline-flex items-center justify-center gap-1.5 px-4 h-9 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.97]"
+            className="group inline-flex items-center justify-center gap-1.5 px-4 h-9 bg-accent hover:filter hover:brightness-110 text-white text-sm font-medium rounded-md transition-all duration-150 active:scale-95 shadow-sm"
           >
             Get started
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" />
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-150" />
           </Link>
         </div>
       </div>

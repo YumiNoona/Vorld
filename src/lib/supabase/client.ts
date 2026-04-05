@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { Database } from "./database.types";
 
 let browserClient: any = null;
 
@@ -15,7 +16,7 @@ export function createClient() {
     throw new Error("Missing Supabase environment variables. Check your .env.local file.");
   }
 
-  browserClient = createBrowserClient(
+  browserClient = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
