@@ -32,10 +32,12 @@
 ## ✨ Key Features
 
 ### 🎮 The 3D Engine
-- **Dynamic Runtime**: Scenes are rendered based on versioned JSON properties, allowing for instant updates without redeploys.
-- **Atmospheric Controls**: Instant environment switching (Studio, City, Park) with high-fidelity contact shadows.
-- **Interaction Logic**: Support for mesh highlights, info-panels, and URL redirects.
-- **Selection System**: Selective post-processing outlines with customizable edge strength and blur.
+- **High-Performance Primitive Architecture**: Optimized for hierarchical stability, ensuring 100% accurate object placement and frame-rate consistency through single-pass scene traversal.
+- **Atmospheric Controls**: Instant environment switching (Studio, City, Park) with high-fidelity contact shadows and silenced shader precision warnings.
+- **Industry-Standard Selection**: Dual-feedback highlighting with emerald-green outlines (halos) and wireframe bounding boxes, mirroring professional 3D software (Blender/Unity).
+- **Triggered Camera Presets**: Smoothly snap to 'Top' or 'Side' views with automated 'Snap-and-Release' logic, ensuring manual orbiting never feels locked.
+- **Custom Context Menu**: Right-click any object to access editor-specific tools (Rename, Hide, Isolate) via a premium Radix-UI portal that suppresses browser defaults.
+- **Interaction Logic**: Support for mesh-level interactivity including animations, audio triggers, and dynamic URL redirects.
 
 ### 🛠 The Creator Dashboard
 - **Visual Mesh Explorer**: Navigate your 3D hierarchy in real-time to target specific nodes for interactivity.
