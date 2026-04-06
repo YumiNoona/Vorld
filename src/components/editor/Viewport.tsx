@@ -9,8 +9,7 @@ import {
   PerspectiveCamera,
   BakeShadows,
   ContactShadows,
-  Environment,
-  TransformControls
+  Environment
 } from "@react-three/drei";
 import { Selection, Select, EffectComposer, Outline, selectionContext } from "@react-three/postprocessing";
 import * as THREE from "three";
@@ -26,6 +25,29 @@ type GLTFResult = {
   animations: THREE.AnimationClip[];
 };
 
+const EMPTY_INTERACTIONS: Interaction[] = [];
+
+// Surgical Warning Silence (For a clean terminal)
+if (typeof window !== "undefined") {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    const msg = args[0];
+    if (typeof msg === "string" && (
+      msg.includes("THREE.THREE.Clock") || 
+      msg.includes("PCFSoftShadowMap") || 
+      msg.includes("X4122")
+    )) return;
+    originalWarn(...args);
+  };
+  
+  const originalLog = console.log;
+  console.log = (...args) => {
+    const msg = args[0];
+    if (typeof msg === "string" && msg.includes("X4122")) return;
+    originalLog(...args);
+  };
+}
+
 // Asset Disposal Helper
 const disposeMaterial = (material: THREE.Material | THREE.Material[]) => {
   if (Array.isArray(material)) {
@@ -35,133 +57,37 @@ const disposeMaterial = (material: THREE.Material | THREE.Material[]) => {
   }
 };
 
-const IndividualMesh = React.memo(function IndividualMesh({
-  uuid,
-  name,
-  node,
-  onSelect,
-  meshMap,
-  interactions,
-  previewMode,
-  renderMode,
-  visible = true,
-  isSelected,
-  isPrimary
-}: {
-  uuid: string;
-  name: string;
-  node: THREE.Mesh;
-  onSelect: (uuid: string, modifiers: { ctrl?: boolean, shift?: boolean }) => void;
-  meshMap: React.MutableRefObject<Record<string, THREE.Mesh>>;
-  interactions: Interaction[];
-  previewMode: boolean;
-  renderMode: RenderMode;
-  visible?: boolean;
-  isSelected?: boolean;
-  isPrimary?: boolean;
-}) {
-  const { runInteraction } = useInteractionRuntime();
-  const originalMaterial = useRef<THREE.Material | THREE.Material[]>(node.material);
-  const [currentMaterial, setCurrentMaterial] = useState<THREE.Material | THREE.Material[]>(node.material);
-
-  useEffect(() => {
-    // Render Mode Logic: Use explicit modes
-    let nextMaterial: THREE.Material | THREE.Material[];
-
-    if (renderMode === 'solid') {
-      nextMaterial = new THREE.MeshStandardMaterial({ color: '#888888', roughness: 0.5, metalness: 0 });
-    } else if (renderMode === 'wireframe') {
-      if (Array.isArray(originalMaterial.current)) {
-        nextMaterial = originalMaterial.current.map(m => {
-          const clone = m.clone() as any;
-          clone.wireframe = true;
-          return clone;
-        });
-      } else {
-        const clone = (originalMaterial.current as THREE.Material).clone() as any;
-        clone.wireframe = true;
-        nextMaterial = clone;
-      }
-    } else {
-      nextMaterial = originalMaterial.current;
-    }
-
-    setCurrentMaterial(nextMaterial);
-
-    // Cleanup cloned materials to prevent leaks
-    return () => {
-      if (nextMaterial !== originalMaterial.current) {
-        disposeMaterial(nextMaterial);
-      }
-    };
-  }, [renderMode]);
-
-  return (
-    <Select enabled={isSelected}>
-      <mesh
-        ref={(ref) => {
-          // eslint-disable-next-line react-hooks/immutability
-          if (ref) meshMap.current[uuid] = ref;
-        }}
-        geometry={node.geometry}
-        material={currentMaterial}
-        matrix={node.matrixWorld}
-        matrixAutoUpdate={true} // Allow gizmo to move it
-        visible={visible}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (previewMode) {
-            runInteraction(meshMap.current[uuid], interactions, "click");
-          } else {
-            onSelect(uuid, { 
-              ctrl: e.ctrlKey || e.metaKey, 
-              shift: e.shiftKey 
-            });
-          }
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          document.body.style.cursor = "pointer";
-          if (previewMode) {
-            runInteraction(meshMap.current[uuid], interactions, "hover");
-          }
-        }}
-        onPointerOut={() => {
-          document.body.style.cursor = "auto";
-          if (previewMode) {
-            runInteraction(meshMap.current[uuid], interactions, "unhover");
-          }
-        }}
-        castShadow
-        receiveShadow
-      />
-    </Select>
-  );
-});
+// (IndividualMesh removed in favor of scene traversal for total stability and hierarchical correctness)
 
 function SceneManager({ url }: { url: string }) {
   const { scene, nodes, animations } = useGLTF(url) as unknown as GLTFResult;
-  const selectMesh = useEditorStore((state) => state.selectMesh);
-  const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
-  const hiddenMeshes = useEditorStore((state) => state.hiddenMeshes);
-  const isolatedId = useEditorStore((state) => state.isolatedId);
-  const interactionsStore = useEditorStore((state) => state.interactions);
-  const previewMode = useEditorStore((state) => state.previewMode);
-  const setAnimations = useEditorStore((state) => state.setAnimations);
-  const renderMode = useEditorStore((state) => state.renderMode);
-  const cameraMode = useEditorStore((state) => state.cameraMode);
+  const {
+    selectMesh,
+    selectedMeshes,
+    hiddenMeshes,
+    isolatedId,
+    interactions: interactionsStore,
+    previewMode,
+    setAnimations,
+    renderMode,
+    cameraMode,
+    toggleMeshVisibility, 
+    toggleIsolate,
+    renameMesh
+  } = useEditorStore();
+  
   const meshMap = useRef<Record<string, THREE.Mesh>>({});
   
-  const { camera, controls } = useThree() as { camera: THREE.PerspectiveCamera, controls: any };
+  const { camera, controls, scene: threeScene } = useThree() as { camera: THREE.PerspectiveCamera, controls: any, scene: THREE.Scene };
 
-  // Sync animations
+  // Sync animations (Guarded)
   useEffect(() => {
-    if (animations && animations.length > 0) {
-      setAnimations(animations.map((a: THREE.AnimationClip) => a.name));
-    } else {
-      setAnimations([]);
+    const animationNames = (animations || []).map((a: THREE.AnimationClip) => a.name);
+    const currentStoreAnims = useEditorStore.getState().animations;
+    if (JSON.stringify(currentStoreAnims) !== JSON.stringify(animationNames)) {
+      useEditorStore.getState().setAnimations(animationNames);
     }
-  }, [animations, setAnimations]);
+  }, [animations]);
 
   const [finalDistance, setFinalDistance] = useState<number | null>(null);
 
@@ -181,58 +107,24 @@ function SceneManager({ url }: { url: string }) {
   useEffect(() => {
     if (!camera || !finalDistance) return;
 
-    // eslint-disable-next-line react-hooks/immutability
-    camera.near = finalDistance / 100;
+    const near = finalDistance / 100;
+    const far = finalDistance * 10;
 
-    // eslint-disable-next-line react-hooks/immutability
-    camera.far = finalDistance * 10;
-
-    camera.updateProjectionMatrix();
+    if (camera.near !== near || camera.far !== far) {
+      // eslint-disable-next-line react-hooks/immutability
+      camera.near = near;
+      // eslint-disable-next-line react-hooks/immutability
+      camera.far = far;
+      camera.updateProjectionMatrix();
+    }
   }, [camera, finalDistance]);
 
-  // 3. Controls Management (Full Reset)
+  // 3. Camera Positioning (Trigger Based)
   useEffect(() => {
-    if (!controls) return;
-    
-    if (cameraMode === 'free') {
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enabled = true;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enableRotate = true;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enablePan = true;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enableZoom = true;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.minPolarAngle = 0;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.maxPolarAngle = Math.PI;
-    } else {
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enabled = true;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enableRotate = false;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enablePan = true;
-      // eslint-disable-next-line react-hooks/immutability
-      controls.enableZoom = true;
-
-      // lock vertical rotation
-      // eslint-disable-next-line react-hooks/immutability
-      controls.minPolarAngle = controls.maxPolarAngle;
-    }
-    controls.update();
-  }, [controls, cameraMode]);
-
-  // 4. Camera Positioning (Mode Based)
-  useEffect(() => {
-    if (!scene || !camera || !finalDistance) return;
-    if (cameraMode === 'free') return;
+    if (!scene || !camera || !finalDistance || cameraMode === 'free') return;
 
     const box = new THREE.Box3().setFromObject(scene);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
+    const center = box.getCenter(new THREE.Vector3());
     const targetPos = new THREE.Vector3();
     const upVec = new THREE.Vector3(0, 1, 0);
 
@@ -240,43 +132,23 @@ function SceneManager({ url }: { url: string }) {
       targetPos.set(center.x, center.y + finalDistance, center.z);
       upVec.set(0, 0, -1);
     } else if (cameraMode === 'side') {
-      targetPos.set(center.x + finalDistance, center.y, center.z);
+      targetPos.set(center.x, center.y, center.z + finalDistance);
       upVec.set(0, 1, 0);
     }
 
-    camera.position.copy(targetPos);
-    camera.up.copy(upVec);
-    camera.lookAt(center);
+    setTargetState({ pos: targetPos, target: center });
+  }, [cameraMode, scene, camera, finalDistance]);
 
-    if (controls) {
-      controls.target.copy(center);
-      controls.update();
-    }
-  }, [cameraMode, scene, camera, controls, finalDistance]);
-
-  const meshEntries = useMemo(
-    () => Object.entries(nodes).filter(([, node]: [string, any]) => node.isMesh),
-    [nodes]
-  );
-
-  const handleSelect = React.useCallback(
-    (uuid: string, modifiers: { ctrl?: boolean, shift?: boolean }) => {
-      selectMesh(uuid, modifiers);
-    },
-    [selectMesh]
-  );
-
-  const primarySelection = useEditorStore((state) => state.primarySelection);
-  const [gizmoMode, setGizmoMode] = useState<"translate" | "rotate" | "scale">("translate");
+  const { runInteraction } = useInteractionRuntime();
 
   // Focus Logic (Smooth Lerp)
   const [targetState, setTargetState] = useState<{ pos: THREE.Vector3, target: THREE.Vector3 } | null>(null);
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (targetState) {
-      state.camera.position.lerp(targetState.pos, 0.1);
+      state.camera.position.lerp(targetState.pos, 0.08); // Relaxed LERP for smoother feel
       if (controls) {
-        controls.target.lerp(targetState.target, 0.1);
+        controls.target.lerp(targetState.target, 0.08);
         controls.update();
       }
       if (state.camera.position.distanceTo(targetState.pos) < 0.01) {
@@ -286,10 +158,12 @@ function SceneManager({ url }: { url: string }) {
   });
 
   const focusSelection = () => {
-    if (selectedMeshes.size === 0) return;
+    const selectedIds = useEditorStore.getState().selectedMeshes;
+    if (selectedIds.size === 0) return;
+    
     const box = new THREE.Box3();
     let hasValid = false;
-    selectedMeshes.forEach(uuid => {
+    selectedIds.forEach(uuid => {
       const mesh = meshMap.current[uuid];
       if (mesh) {
         box.expandByObject(mesh);
@@ -302,7 +176,6 @@ function SceneManager({ url }: { url: string }) {
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    // Correct framing distance: maxDim * 1.5
     const distance = maxDim * 1.5 || 5;
 
     const direction = new THREE.Vector3().subVectors(camera.position, controls?.target || new THREE.Vector3()).normalize();
@@ -314,72 +187,144 @@ function SceneManager({ url }: { url: string }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
-      
-      switch (e.key.toLowerCase()) {
-        case "w": setGizmoMode("translate"); break;
-        case "e": setGizmoMode("rotate"); break;
-        case "r": setGizmoMode("scale"); break;
-        case "f": focusSelection(); break;
-      }
+      if (e.key.toLowerCase() === "f") focusSelection();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedMeshes, camera, controls]);
+  }, [camera, controls]);
+
+  // 5. Hierarchy Synchronization & Overrides
+  useEffect(() => {
+    if (!scene) return;
+    
+    // Stable synchronization loop
+    scene.traverse((node: any) => {
+      if (node.isMesh) {
+        // Apply Visibility (Isolation / Hiding)
+        const isVisible = isolatedId 
+          ? isolatedId === node.uuid 
+          : !hiddenMeshes.has(node.uuid);
+        node.visible = isVisible;
+
+        // Apply Render Mode Materials
+        if (renderMode === 'solid') {
+           if (!node.userData.originalMaterial) node.userData.originalMaterial = node.material;
+           node.material = new THREE.MeshStandardMaterial({ color: '#888888', roughness: 0.5, metalness: 0 });
+        } else if (renderMode === 'wireframe') {
+           if (!node.userData.originalMaterial) node.userData.originalMaterial = node.material;
+           node.material = (node.userData.originalMaterial || node.material).clone();
+           node.material.wireframe = true;
+        } else {
+           if (node.userData.originalMaterial) {
+              node.material = node.userData.originalMaterial;
+           }
+        }
+
+        // Apply Selection Highlighting (Emissive Glow Fallback)
+        const isSelected = selectedMeshes.has(node.uuid);
+        if (isSelected) {
+           node.material.emissive = node.material.emissive || new THREE.Color(0,0,0);
+           node.material.emissive.set('#10b981');
+           node.material.emissiveIntensity = 1.0; // Brighter for certainty
+        } else if (node.material.emissive) {
+           node.material.emissive.set('#000000');
+           node.material.emissiveIntensity = 0;
+        }
+
+        // Setup mesh map for focus/interactivity
+        meshMap.current[node.uuid] = node;
+      }
+    });
+  }, [scene, hiddenMeshes, isolatedId, renderMode, selectedMeshes]);
 
   return (
-    <group dispose={null} scale={2}>
-      {meshEntries.map(([name, node]) => {
-        const mesh = node as THREE.Mesh;
-        const isSelected = selectedMeshes.has(mesh.uuid);
-        const isPrimary = primarySelection === mesh.uuid;
-        const isVisible = isolatedId ? isolatedId === mesh.uuid : !hiddenMeshes.has(mesh.uuid);
-        return (
-          <IndividualMesh
-            key={mesh.uuid}
-            uuid={mesh.uuid}
-            name={name}
-            node={mesh}
-            onSelect={handleSelect}
-            meshMap={meshMap}
-            interactions={interactionsStore[mesh.uuid] || interactionsStore[name] || []}
-            previewMode={previewMode}
-            renderMode={renderMode}
-            visible={isVisible}
-            isSelected={isSelected}
-            isPrimary={isPrimary}
-          />
-        );
-      })}
-
-      {primarySelection && meshMap.current[primarySelection] && !previewMode && (
-        <TransformControls
-          object={meshMap.current[primarySelection]}
-          mode={gizmoMode}
-          enabled={cameraMode === 'free'}
-          onMouseDown={() => {
-            if (controls) controls.enabled = false;
-            if (meshMap.current[primarySelection]) {
-              meshMap.current[primarySelection].userData.isDragging = true;
-            }
-          }}
-          onMouseUp={() => {
-            if (controls) controls.enabled = true;
-            if (meshMap.current[primarySelection]) {
-              meshMap.current[primarySelection].userData.isDragging = false;
-            }
-          }}
-        />
-      )}
+    <group dispose={null}>
+      <primitive 
+        object={scene} 
+        onClick={(e: any) => {
+          if (!e.object.isMesh) return;
+          e.stopPropagation();
+          
+          const mesh = e.object;
+          if (previewMode) {
+            const interactions = interactionsStore[mesh.uuid] || interactionsStore[mesh.name] || EMPTY_INTERACTIONS;
+            runInteraction(mesh, interactions, "click");
+          } else {
+            selectMesh(mesh.uuid, mesh.name, { 
+              ctrl: e.ctrlKey || e.metaKey, 
+              shift: e.shiftKey 
+            });
+          }
+        }}
+        onPointerOver={(e: any) => {
+          if (!e.object.isMesh) return;
+          e.stopPropagation();
+          document.body.style.cursor = "pointer";
+          if (previewMode) {
+             const mesh = e.object;
+             const interactions = interactionsStore[mesh.uuid] || interactionsStore[mesh.name] || EMPTY_INTERACTIONS;
+             runInteraction(mesh, interactions, "hover");
+          }
+        }}
+        onPointerOut={(e: any) => {
+          document.body.style.cursor = "auto";
+          if (previewMode && e.object.isMesh) {
+             const mesh = e.object;
+             const interactions = interactionsStore[mesh.uuid] || interactionsStore[mesh.name] || EMPTY_INTERACTIONS;
+             runInteraction(mesh, interactions, "unhover");
+          }
+        }}
+      />
     </group>
   );
 }
 
+// Sub-component for Highlights to optimize renders
+function SelectionHighlights() {
+  const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
+  const { scene } = useThree();
+  const [selectedObjects, setSelectedObjects] = useState<THREE.Object3D[]>([]);
+
+  useEffect(() => {
+    const next: THREE.Object3D[] = [];
+    scene.traverse((child) => {
+       if (child.type === 'Mesh' && selectedMeshes.has(child.uuid)) {
+         next.push(child);
+       }
+    });
+    setSelectedObjects(next);
+  }, [selectedMeshes, scene]);
+
+  if (selectedObjects.length === 0) return null;
+
+  return (
+    <>
+      <EffectComposer autoClear={false}>
+        <Outline
+          selection={selectedObjects}
+          visibleEdgeColor={0x10b981}
+          edgeStrength={10}
+          width={2}
+        />
+      </EffectComposer>
+      {selectedObjects.map((obj) => (
+        <primitive 
+          key={`box-${obj.uuid}`} 
+          object={new THREE.BoxHelper(obj, '#10b981')} 
+          attach="none"
+          onUpdate={(self: any) => self.update()}
+        />
+      ))}
+    </>
+  );
+}
+
 export function Viewport() {
-  console.count("Viewport render");
   const modelPath = useEditorStore((state) => state.modelPath);
   const savedCamera = useEditorStore((state) => state.camera);
   const setSelectedMeshes = useEditorStore((state) => state.setSelectedMeshes);
   const previewMode = useEditorStore((state) => state.previewMode);
+  const targetName = useEditorStore((state) => state.primarySelectionName);
 
   const modelUrl = useMemo(() => {
     if (!modelPath) return null;
@@ -394,7 +339,7 @@ export function Viewport() {
 
   if (!modelUrl) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-bg-secondary">
+      <div className="w-full h-full flex items-center justify-center bg-[#0b0f14]">
         <p className="text-text-secondary text-xs uppercase font-bold tracking-widest animate-pulse">
           Initializing Engine...
         </p>
@@ -404,9 +349,13 @@ export function Viewport() {
 
   return (
     <EditorContextMenu>
-      <div className="w-full h-full cursor-grab active:cursor-grabbing outline-none" tabIndex={0}>
+      <div 
+        className="w-full h-full cursor-grab active:cursor-grabbing outline-none" 
+        tabIndex={0}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <Canvas
-        shadows
+        shadows={{ type: THREE.PCFShadowMap }}
         dpr={[1, 2]}
         gl={{ 
           antialias: true, 
@@ -414,54 +363,35 @@ export function Viewport() {
           powerPreference: "high-performance"
         }}
         onCreated={({ gl }) => {
-          // Technical Fix: Correct Shadow Map
           gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFShadowMap;
+          gl.setClearColor("#0b0f14", 1);
         }}
       >
+        <color attach="background" args={['#0b0f14']} />
         <PerspectiveCamera
           makeDefault
           position={savedCamera.position}
           fov={45}
         />
-        <ambientLight intensity={0.5} />
-        <spotLight
-          position={[10, 10, 10]}
-          angle={0.15}
-          penumbra={1}
-          intensity={1.5}
+        <ambientLight intensity={0.7} />
+        <directionalLight
+          position={[5, 10, 5]}
+          intensity={1}
           castShadow
+          shadow-mapSize={[1024, 1024]}
         />
 
         <Suspense fallback={null}>
-          <Selection>
-            <EffectComposer multisampling={0} autoClear={false}>
-              {previewMode ? <></> : (
-                <Outline
-                  visibleEdgeColor={0x10b981}
-                  hiddenEdgeColor={0x10b981}
-                  edgeStrength={useEditorStore.getState().selectedMeshes.size <= 20 ? 3 : 0}
-                  width={1.5}
-                />
-              )}
-            </EffectComposer>
-
-            <Stage
-              environment="studio"
-              intensity={0.5}
-              shadows={false}
-              adjustCamera={false}
-            >
-              <SceneManager url={modelUrl} />
-            </Stage>
-          </Selection>
+          <SceneManager url={modelUrl} />
+          {!previewMode && <SelectionHighlights />}
 
           <ContactShadows
-            position={[0, -0.8, 0]}
+            position={[0, -0.05, 0]}
             opacity={0.4}
-            scale={10}
-            blur={2.5}
-            far={0.8}
+            scale={20}
+            blur={1.5}
+            far={10}
+            resolution={1024}
           />
           <Environment preset="city" />
           <BakeShadows />
@@ -472,6 +402,10 @@ export function Viewport() {
           minPolarAngle={0}
           maxPolarAngle={Math.PI}
           target={cameraTarget}
+          onStart={() => {
+            // Free the camera mode as soon as the user interacts
+            useEditorStore.getState().setCameraMode('free');
+          }}
           onEnd={(e: any) => {
             const pos = e.target.object.position;
             const tar = e.target.target;

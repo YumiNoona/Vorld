@@ -28,6 +28,7 @@ interface EditorState {
   projectTitle: string;
   selectedMeshes: Set<string>;
   primarySelection: string | null;
+  primarySelectionName: string | null;
   interactions: Record<string, Interaction[]>;
   hiddenMeshes: Set<string>;
   previousHidden: Set<string> | null;
@@ -53,8 +54,8 @@ interface EditorState {
   // Actions
   setProjectTitle: (title: string) => void;
   setModelPath: (path: string | null) => void;
-  selectMesh: (meshId: string, modifiers?: { ctrl?: boolean, shift?: boolean }) => void;
-  setSelectedMeshes: (meshIds: string[]) => void;
+  selectMesh: (meshId: string, name: string | null, modifiers?: { ctrl?: boolean, shift?: boolean }) => void;
+  setSelectedMeshes: (meshIds: string[], names: string[]) => void;
   toggleMeshVisibility: (meshId: string) => void;
   toggleIsolate: (meshId: string | null) => void;
   renameMesh: (meshId: string, newName: string) => void;
@@ -80,11 +81,18 @@ interface EditorState {
   reset: () => void;
 }
 
+const areSetsEqual = (a: Set<string>, b: Set<string>) => {
+  if (a.size !== b.size) return false;
+  for (const item of a) if (!b.has(item)) return false;
+  return true;
+};
+
 export const useEditorStore = create<EditorState>((set) => ({
   modelPath: null,
   projectTitle: "Untitled Vorld",
   selectedMeshes: new Set(),
   primarySelection: null,
+  primarySelectionName: null,
   interactions: {},
   hiddenMeshes: new Set(),
   previousHidden: null,
@@ -109,34 +117,50 @@ export const useEditorStore = create<EditorState>((set) => ({
   setProjectTitle: (projectTitle) => set({ projectTitle, isDirty: true }),
   setModelPath: (path) => set({ modelPath: path }),
   
-  setSelectedMeshes: (meshIds) => set({ 
-    selectedMeshes: new Set(meshIds),
-    primarySelection: meshIds.length > 0 ? meshIds[meshIds.length - 1] : null 
+  setSelectedMeshes: (meshIds, names) => set((state) => {
+    const nextSelection = new Set(meshIds);
+    if (areSetsEqual(state.selectedMeshes, nextSelection)) return state;
+    return { 
+      selectedMeshes: nextSelection,
+      primarySelection: meshIds.length > 0 ? meshIds[meshIds.length - 1] : null,
+      primarySelectionName: names.length > 0 ? names[names.length - 1] : null 
+    };
   }),
 
-  selectMesh: (meshId, modifiers) => set((state) => {
+  selectMesh: (meshId, name, modifiers) => set((state) => {
     const { ctrl, shift } = modifiers || {};
-    const newSelection = new Set(state.selectedMeshes);
+    const nextSelection = new Set(state.selectedMeshes);
 
     if (ctrl) {
-      if (newSelection.has(meshId)) {
-        newSelection.delete(meshId);
+      if (nextSelection.has(meshId)) {
+        nextSelection.delete(meshId);
       } else {
-        newSelection.add(meshId);
+        nextSelection.add(meshId);
       }
     } else if (shift) {
-      newSelection.add(meshId);
+      nextSelection.add(meshId);
     } else {
-      newSelection.clear();
-      newSelection.add(meshId);
+      nextSelection.clear();
+      nextSelection.add(meshId);
     }
 
-    // Safeguard 2: Selection Pruning
-    state.hiddenMeshes.forEach(id => newSelection.delete(id));
+    state.hiddenMeshes.forEach(id => nextSelection.delete(id));
+
+    // Stabilize primary selection
+    const nextPrimaryId = nextSelection.has(meshId) ? meshId : (nextSelection.size > 0 ? Array.from(nextSelection).pop()! : null);
+    const nextPrimaryName = (nextPrimaryId === meshId) ? name : (nextPrimaryId ? null : null); // Fallback for name is tricky, but let's prioritize the provided name if it's the primary
+
+    // IDEMPOTENCY CHECK
+    if (areSetsEqual(state.selectedMeshes, nextSelection) && 
+        state.primarySelection === nextPrimaryId && 
+        state.primarySelectionName === (nextPrimaryName || name)) {
+      return state;
+    }
 
     return {
-      selectedMeshes: newSelection,
-      primarySelection: newSelection.has(meshId) ? meshId : (newSelection.size > 0 ? Array.from(newSelection).pop()! : null)
+      selectedMeshes: nextSelection,
+      primarySelection: nextPrimaryId,
+      primarySelectionName: nextPrimaryName || name
     };
   }),
 
@@ -148,6 +172,11 @@ export const useEditorStore = create<EditorState>((set) => ({
     // Safeguard 2: Selection Pruning on visibility change
     const newSelection = new Set(state.selectedMeshes);
     newHidden.forEach(id => newSelection.delete(id));
+
+    const selectionUnchanged = areSetsEqual(state.selectedMeshes, newSelection);
+    const hiddenUnchanged = areSetsEqual(state.hiddenMeshes, newHidden);
+
+    if (selectionUnchanged && hiddenUnchanged) return state;
 
     return { hiddenMeshes: newHidden, selectedMeshes: newSelection, isDirty: true };
   }),
@@ -186,11 +215,16 @@ export const useEditorStore = create<EditorState>((set) => ({
     if (state.selectedMeshes.size === 0) return state;
     const newInteractions = { ...state.interactions };
     
-    state.selectedMeshes.forEach(meshId => {
-      const meshInts = newInteractions[meshId] ? [...newInteractions[meshId]] : [];
+    // Store key priority: Name > UUID
+    const targetKey = state.primarySelectionName || state.primarySelection;
+    if (!targetKey) return state;
+
+    const meshInts = newInteractions[targetKey] ? [...newInteractions[targetKey]] : [];
+    // Only add if not already present by ID
+    if (!meshInts.find(i => i.id === interaction.id)) {
       meshInts.push(JSON.parse(JSON.stringify(interaction)));
-      newInteractions[meshId] = meshInts;
-    });
+      newInteractions[targetKey] = meshInts;
+    }
 
     return { interactions: newInteractions, isDirty: true };
   }),
@@ -199,15 +233,14 @@ export const useEditorStore = create<EditorState>((set) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
     
-    state.selectedMeshes.forEach(meshId => {
-      if (newInteractions[meshId]) {
-        const filtered = newInteractions[meshId].filter(i => i.id !== interactionId);
-        if (filtered.length !== newInteractions[meshId].length) {
-          newInteractions[meshId] = filtered;
-          changed = true;
-        }
+    const targetKey = state.primarySelectionName || state.primarySelection;
+    if (targetKey && newInteractions[targetKey]) {
+      const filtered = newInteractions[targetKey].filter(i => i.id !== interactionId);
+      if (filtered.length !== newInteractions[targetKey].length) {
+        newInteractions[targetKey] = filtered;
+        changed = true;
       }
-    });
+    }
 
     return changed ? { interactions: newInteractions, isDirty: true } : state;
   }),
@@ -216,17 +249,16 @@ export const useEditorStore = create<EditorState>((set) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(meshId => {
-      if (newInteractions[meshId]) {
-        newInteractions[meshId] = newInteractions[meshId].map(i => {
-          if (i.id === interactionId) {
-            changed = true;
-            return { ...i, ...updates };
-          }
-          return i;
-        });
-      }
-    });
+    const targetKey = state.primarySelectionName || state.primarySelection;
+    if (targetKey && newInteractions[targetKey]) {
+      newInteractions[targetKey] = newInteractions[targetKey].map(i => {
+        if (i.id === interactionId) {
+          changed = true;
+          return { ...i, ...updates };
+        }
+        return i;
+      });
+    }
 
     return changed ? { interactions: newInteractions, isDirty: true } : state;
   }),
@@ -235,17 +267,16 @@ export const useEditorStore = create<EditorState>((set) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(meshId => {
-      if (newInteractions[meshId]) {
-        newInteractions[meshId] = newInteractions[meshId].map(i => {
-          if (i.id === interactionId) {
-            changed = true;
-            return { ...i, actions: [...i.actions, JSON.parse(JSON.stringify(action))] };
-          }
-          return i;
-        });
-      }
-    });
+    const targetKey = state.primarySelectionName || state.primarySelection;
+    if (targetKey && newInteractions[targetKey]) {
+      newInteractions[targetKey] = newInteractions[targetKey].map(i => {
+        if (i.id === interactionId) {
+          changed = true;
+          return { ...i, actions: [...i.actions, JSON.parse(JSON.stringify(action))] };
+        }
+        return i;
+      });
+    }
 
     return changed ? { interactions: newInteractions, isDirty: true } : state;
   }),
@@ -254,17 +285,16 @@ export const useEditorStore = create<EditorState>((set) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(meshId => {
-      if (newInteractions[meshId]) {
-        newInteractions[meshId] = newInteractions[meshId].map(i => {
-          if (i.id === interactionId) {
-             changed = true;
-             return { ...i, actions: i.actions.filter(a => a.id !== actionId) };
-          }
-          return i;
-        });
-      }
-    });
+    const targetKey = state.primarySelectionName || state.primarySelection;
+    if (targetKey && newInteractions[targetKey]) {
+      newInteractions[targetKey] = newInteractions[targetKey].map(i => {
+        if (i.id === interactionId) {
+           changed = true;
+           return { ...i, actions: i.actions.filter(a => a.id !== actionId) };
+        }
+        return i;
+      });
+    }
 
     return changed ? { interactions: newInteractions, isDirty: true } : state;
   }),
@@ -273,20 +303,19 @@ export const useEditorStore = create<EditorState>((set) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(meshId => {
-      if (newInteractions[meshId]) {
-        newInteractions[meshId] = newInteractions[meshId].map(i => {
-          if (i.id === interactionId) {
-             changed = true;
-             return { 
-               ...i, 
-               actions: i.actions.map(a => a.id === actionId ? { ...a, config: { ...a.config, ...config } } : a)
-             };
-          }
-          return i;
-        });
-      }
-    });
+    const targetKey = state.primarySelectionName || state.primarySelection;
+    if (targetKey && newInteractions[targetKey]) {
+      newInteractions[targetKey] = newInteractions[targetKey].map(i => {
+        if (i.id === interactionId) {
+           changed = true;
+           return { 
+             ...i, 
+             actions: i.actions.map(a => a.id === actionId ? { ...a, config: { ...a.config, ...config } } : a)
+           };
+        }
+        return i;
+      });
+    }
 
     return changed ? { interactions: newInteractions, isDirty: true } : state;
   }),
@@ -295,25 +324,24 @@ export const useEditorStore = create<EditorState>((set) => ({
     const newInteractions = { ...state.interactions };
     let changed = false;
 
-    state.selectedMeshes.forEach(meshId => {
-      if (newInteractions[meshId]) {
-        newInteractions[meshId] = newInteractions[meshId].map(i => {
-          if (i.id === interactionId) {
-            changed = true;
-            const newActions = [...i.actions];
-            const [movedAction] = newActions.splice(oldIndex, 1);
-            newActions.splice(newIndex, 0, movedAction);
-            return { ...i, actions: newActions };
-          }
-          return i;
-        });
-      }
-    });
+    const targetKey = state.primarySelectionName || state.primarySelection;
+    if (targetKey && newInteractions[targetKey]) {
+      newInteractions[targetKey] = newInteractions[targetKey].map(i => {
+        if (i.id === interactionId) {
+          changed = true;
+          const newActions = [...i.actions];
+          const [movedAction] = newActions.splice(oldIndex, 1);
+          newActions.splice(newIndex, 0, movedAction);
+          return { ...i, actions: newActions };
+        }
+        return i;
+      });
+    }
 
     return changed ? { interactions: newInteractions, isDirty: true } : state;
   }),
   
-  setInteractions: (rawInteractions) => set(() => {
+  setInteractions: (rawInteractions) => set((state) => {
     let parsed: any;
     try {
       if (!rawInteractions || typeof rawInteractions !== "string") {
@@ -327,87 +355,74 @@ export const useEditorStore = create<EditorState>((set) => ({
       parsed = {};
     }
 
-    if (!parsed || Object.keys(parsed).length === 0) {
-      return { interactions: {}, isDirty: false };
+    if (!parsed || (Object.keys(parsed).length === 0 && Object.keys(state.interactions).length === 0)) {
+      return state;
     }
 
+    let finalInteractions = {};
     if (parsed.version === 2) {
-      return { 
-        interactions: parsed.items || {}, 
-        projectTitle: parsed.projectTitle || "Untitled Vorld",
-        isDirty: false 
-      };
+      finalInteractions = parsed.items || {};
+    } else {
+      // Migration logic ...
+      const migratedItems: Record<string, Interaction[]> = {};
+      const oldItems = parsed.items ? parsed.items : parsed;
+      if (!Array.isArray(oldItems)) {
+        Object.entries(oldItems).forEach(([meshName, ints]: [string, any]) => {
+          if (!Array.isArray(ints)) return;
+          migratedItems[meshName] = (ints as any[]).map((oldInt: any) => {
+            const id = oldInt.id || Math.random().toString(36).substr(2, 9);
+            const type = oldInt.type;
+            const config = oldInt.config || {};
+            let newTrigger: "onClick" | "onHover" = (type?.startsWith("hover") ? "onHover" : "onClick");
+            return {
+              id,
+              trigger: newTrigger,
+              revertOnLeave: true,
+              actions: [{
+                id: Math.random().toString(36).substring(2, 11),
+                type: (type?.replace("click_", "").replace("hover_", "") || "highlight") as InteractionAction["type"],
+                config: config
+              }]
+            };
+          });
+        });
+      }
+      finalInteractions = migratedItems;
     }
 
-    const migratedItems: Record<string, Interaction[]> = {};
-    const oldItems = parsed.items ? parsed.items : parsed;
-    
-    if (Array.isArray(oldItems)) {
-        return { interactions: {}, isDirty: false }; 
+    // IDEMPOTENCY CHECK
+    if (JSON.stringify(state.interactions) === JSON.stringify(finalInteractions)) {
+      return state;
     }
 
-    Object.entries(oldItems).forEach(([meshName, ints]: [string, any]) => {
-      if (!Array.isArray(ints)) return;
-      migratedItems[meshName] = (ints as any[]).map((oldInt: any) => {
-        const id = oldInt.id || Math.random().toString(36).substr(2, 9);
-        const type = oldInt.type;
-        const config = oldInt.config || {};
-        
-        let newTrigger: "onClick" | "onHover" = "onClick";
-        let newActionType = type;
-        let revertOnLeave = false;
-        
-        if (type === "hover_highlight") {
-          newTrigger = "onHover";
-          revertOnLeave = true;
-          if (config.effect === "highlight" || config.effect === "glow") {
-            newActionType = config.effect;
-          } else if (config.effect === "scale") {
-            newActionType = "scale";
-          } else {
-             newActionType = "highlight";
-          }
-        } else if (type === "click_info_panel") {
-          newActionType = "info_panel";
-        } else if (type === "click_url") {
-          newActionType = "url"; 
-        } else if (type === "click_animation") {
-          newActionType = "animation";
-        }
-
-        return {
-          id,
-          trigger: newTrigger,
-          revertOnLeave,
-          actions: [{
-            id: Math.random().toString(36).substring(2, 11),
-            type: newActionType as InteractionAction["type"],
-            config: config
-          }]
-        };
-      });
-    });
-
-    return { interactions: migratedItems, isDirty: true };
+    return { 
+      interactions: finalInteractions, 
+      isDirty: false 
+    };
   }),
   
-  setCamera: (position, target) => set({ 
-    camera: { position, target },
-    isDirty: true 
+  setCamera: (position, target) => set((state) => {
+    if (JSON.stringify(state.camera.position) === JSON.stringify(position) &&
+        JSON.stringify(state.camera.target) === JSON.stringify(target)) return state;
+    return { camera: { position, target }, isDirty: true };
   }),
 
-  setDirty: (isDirty) => set({ isDirty }),
-  setLoading: (isLoading) => set({ isLoading }),
-  setPreviewMode: (previewMode) => set({ previewMode }),
-  setAnimations: (animations) => set({ animations }),
+  setDirty: (isDirty) => set((state) => (state.isDirty === isDirty ? state : { isDirty })),
+  setLoading: (isLoading) => set((state) => (state.isLoading === isLoading ? state : { isLoading })),
+  setPreviewMode: (previewMode) => set((state) => (state.previewMode === previewMode ? state : { previewMode })),
+  setAnimations: (animations) => set((state) => {
+    if (JSON.stringify(state.animations) === JSON.stringify(animations)) return state;
+    return { animations };
+  }),
   
-  setRenderMode: (renderMode) => set({ renderMode, isDirty: true }),
-  setCameraMode: (cameraMode) => set({ cameraMode, isDirty: true }),
+  setRenderMode: (renderMode) => set((state) => (state.renderMode === renderMode ? state : { renderMode, isDirty: true })),
+  setCameraMode: (cameraMode) => set((state) => (state.cameraMode === cameraMode ? state : { cameraMode, isDirty: true })),
   
-  setViewerSettings: (settings) => set((state) => ({ 
-    viewerSettings: { ...state.viewerSettings, ...settings },
-    isDirty: true
-  })),
+  setViewerSettings: (settings) => set((state) => {
+     const next = { ...state.viewerSettings, ...settings };
+     if (JSON.stringify(state.viewerSettings) === JSON.stringify(next)) return state;
+     return { viewerSettings: next, isDirty: true };
+  }),
 
   reset: () => set({
     modelPath: null,

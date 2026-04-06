@@ -36,11 +36,20 @@ export default function EditorPage() {
   const router = useRouter();
   const id = params.id as string;
   const supabase = createClient();
-  const { 
-    isDirty, setDirty, setModelPath, setInteractions, setCamera, 
-    interactions, camera, reset, previewMode, setPreviewMode,
-    renderMode, setRenderMode, cameraMode, setCameraMode
-  } = useEditorStore();
+  const isDirty = useEditorStore(state => state.isDirty);
+  const setDirty = useEditorStore(state => state.setDirty);
+  const setModelPath = useEditorStore(state => state.setModelPath);
+  const setInteractions = useEditorStore(state => state.setInteractions);
+  const setCamera = useEditorStore(state => state.setCamera);
+  const interactions = useEditorStore(state => state.interactions);
+  const camera = useEditorStore(state => state.camera);
+  const reset = useEditorStore(state => state.reset);
+  const previewMode = useEditorStore(state => state.previewMode);
+  const setPreviewMode = useEditorStore(state => state.setPreviewMode);
+  const renderMode = useEditorStore(state => state.renderMode);
+  const setRenderMode = useEditorStore(state => state.setRenderMode);
+  const cameraMode = useEditorStore(state => state.cameraMode);
+  const setCameraMode = useEditorStore(state => state.setCameraMode);
   
   const handlePreviewToggle = () => setPreviewMode(!previewMode);
   

@@ -81,7 +81,7 @@ export function MeshExplorer() {
           return (
             <button
               key={mesh.uuid}
-              onClick={(e) => selectMesh(mesh.uuid, { 
+              onClick={(e) => selectMesh(mesh.uuid, mesh.name, { 
                 ctrl: e.ctrlKey || e.metaKey, 
                 shift: e.shiftKey 
               })}

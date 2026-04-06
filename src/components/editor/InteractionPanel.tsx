@@ -19,15 +19,19 @@ export function InteractionPanel() {
   } = useEditorStore();
 
   const primarySelection = useEditorStore((state) => state.primarySelection);
+  const primarySelectionName = useEditorStore((state) => state.primarySelectionName);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
-  const primaryMesh = primarySelection || (selectedMeshes.size > 0 ? Array.from(selectedMeshes)[0] : null);
-  const meshInteractions = primaryMesh ? interactions[primaryMesh] || [] : [];
+  
+  // Migration logic: Fallback to UUID if Name interaction is missing, though we prefer Name for persistence
+  const meshInteractions = (primarySelectionName ? interactions[primarySelectionName] : null)
+    || (primarySelection ? interactions[primarySelection] : null)
+    || [];
 
   const headerText = selectedMeshes?.size > 1 
      ? `${selectedMeshes.size} Items Selected`
-     : primaryMesh;
+     : (primarySelectionName || primarySelection);
 
-  if (!primaryMesh) {
+  if (!primarySelection) {
     return (
       <aside className="w-[384px] border-l border-border-default bg-bg-secondary shrink-0 flex flex-col items-center justify-center p-10 text-center bg-bg-secondary/50 transition-all duration-300">
         <div className="w-16 h-16 rounded-3xl bg-bg-primary flex items-center justify-center text-text-tertiary mb-8 border border-border-default shadow-xl">
