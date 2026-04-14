@@ -27,7 +27,8 @@ export function EditorContextMenu({ children }: EditorContextMenuProps) {
     toggleMeshVisibility, 
     toggleIsolate,
     renameMesh,
-    primarySelectionName // Added for name resolution
+    deleteMesh,
+    primarySelectionName 
   } = useEditorStore();
 
   const [isRenaming, setIsRenaming] = useState(false);
@@ -71,7 +72,7 @@ export function EditorContextMenu({ children }: EditorContextMenuProps) {
 
   return (
     <ContextMenu.Root onOpenChange={(open) => {
-      if (open) setTempName(targetId);
+      if (open) setTempName(primarySelectionName || targetId || "");
       else setIsRenaming(false);
     }}>
       <ContextMenu.Trigger asChild>
@@ -84,9 +85,11 @@ export function EditorContextMenu({ children }: EditorContextMenuProps) {
         >
            <div className="px-2.5 py-2 mb-1 flex items-center gap-2 border-b border-border-default/50">
              <div className="w-2 h-2 rounded-full bg-accent" />
-             <span className="text-[11px] font-bold text-text-primary truncate max-w-[120px]">
-               {primarySelectionName || "Selected Mesh"}
-             </span>
+              <span className="text-[11px] font-bold text-text-primary truncate max-w-[120px]">
+                {selectedMeshes.size > 1 
+                  ? `${selectedMeshes.size} Objects Selected` 
+                  : (primarySelectionName || "Selected Mesh")}
+              </span>
           </div>
 
           <ContextMenu.Item 
@@ -125,6 +128,7 @@ export function EditorContextMenu({ children }: EditorContextMenuProps) {
           <ContextMenu.Separator className="h-px bg-border-default my-1" />
 
           <ContextMenu.Item 
+            onSelect={() => targetId && deleteMesh(targetId)}
             className="group flex items-center justify-between px-2.5 py-2 text-xs font-medium text-red-500 rounded-lg outline-none hover:bg-red-500 hover:text-white cursor-default transition-colors"
           >
             <div className="flex items-center gap-2">

@@ -2,8 +2,17 @@
 
 import React from "react";
 import { 
-  X, Box, ChevronDown, ChevronUp, Plus
+  X, Box, ChevronDown, ChevronUp, Plus, Search
 } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
+import { 
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem 
+} from "@/components/ui/command";
 import { useEditorStore, InteractionAction } from "@/stores/editorStore";
 import { ActionForm, ACTION_TYPES } from "./ActionForms";
 import { cn } from "@/lib/utils";
@@ -126,24 +135,67 @@ export function ActionStack({ interactionId, actions, animations, onUpdateStack 
       })}
 
       <div className="pt-2">
-         <div className="relative group/select">
-            <select 
-              onChange={(e) => { 
-                if (e.target.value) {
-                  handleAddAction(e.target.value);
-                  e.target.value = "";
-                }
-              }} 
-              defaultValue=""
-              className="w-full h-10 bg-bg-primary border border-border-default rounded-lg text-sm font-medium text-text-secondary outline-none px-4 appearance-none text-center cursor-pointer hover:bg-bg-secondary hover:text-text-primary transition-all shadow-sm"
-            >
-               <option value="" disabled>+ Add Action</option>
-               {ACTION_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary">
-               <Plus className="w-3.5 h-3.5" />
-            </div>
-         </div>
+         <Popover.Root>
+            <Popover.Trigger asChild>
+               <button className="w-full h-10 bg-bg-primary border border-border-default border-dashed rounded-xl text-[11px] font-bold text-text-tertiary hover:text-accent hover:border-accent hover:bg-accent/5 transition-all flex items-center justify-center gap-2 group/add shadow-sm">
+                  <div className="w-5 h-5 rounded-full bg-bg-secondary flex items-center justify-center group-hover/add:bg-accent group-hover/add:text-white transition-colors">
+                     <Plus className="w-3 h-3" />
+                  </div>
+                  ADD INTERACTION ACTION
+               </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+               <Popover.Content 
+                  side="bottom" 
+                  align="center" 
+                  sideOffset={8}
+                  className="w-64 bg-bg-primary/95 backdrop-blur-xl border border-border-default rounded-xl shadow-2xl z-[100] p-1 animate-in fade-in zoom-in-95 duration-150"
+               >
+                  <Command>
+                     <CommandInput placeholder="Search actions..." className="h-9" />
+                     <CommandList className="max-h-[280px]">
+                        <CommandEmpty>No action found.</CommandEmpty>
+                        <CommandGroup heading="Visual Effects">
+                           {ACTION_TYPES.filter(a => ["highlight", "glow", "scale"].includes(a.id)).map(type => (
+                              <CommandItem 
+                                 key={type.id} 
+                                 onSelect={() => handleAddAction(type.id)}
+                                 className="flex items-center gap-2 px-2 py-2 cursor-pointer"
+                              >
+                                 <type.icon className="w-3.5 h-3.5 text-accent" />
+                                 <span className="text-xs font-medium">{type.label}</span>
+                              </CommandItem>
+                           ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Scene Flow">
+                           {ACTION_TYPES.filter(a => ["camera_focus", "animation", "audio"].includes(a.id)).map(type => (
+                              <CommandItem 
+                                 key={type.id} 
+                                 onSelect={() => handleAddAction(type.id)}
+                                 className="flex items-center gap-2 px-2 py-2 cursor-pointer"
+                              >
+                                 <type.icon className="w-3.5 h-3.5 text-blue-400" />
+                                 <span className="text-xs font-medium">{type.label}</span>
+                              </CommandItem>
+                           ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Logic & UI">
+                           {ACTION_TYPES.filter(a => ["info_panel", "url", "toggle"].includes(a.id)).map(type => (
+                              <CommandItem 
+                                 key={type.id} 
+                                 onSelect={() => handleAddAction(type.id)}
+                                 className="flex items-center gap-2 px-2 py-2 cursor-pointer"
+                              >
+                                 <type.icon className="w-3.5 h-3.5 text-text-tertiary" />
+                                 <span className="text-xs font-medium">{type.label}</span>
+                              </CommandItem>
+                           ))}
+                        </CommandGroup>
+                     </CommandList>
+                  </Command>
+               </Popover.Content>
+            </Popover.Portal>
+         </Popover.Root>
       </div>
     </div>
   );

@@ -50,6 +50,12 @@ interface EditorState {
     showControls: boolean;
     autoRotate: boolean;
   };
+  
+  // History for Undo/Redo (Interactions only)
+  history: {
+    past: Record<string, Interaction[]>[];
+    future: Record<string, Interaction[]>[];
+  };
 
   // Actions
   setProjectTitle: (title: string) => void;
@@ -59,6 +65,11 @@ interface EditorState {
   toggleMeshVisibility: (meshId: string) => void;
   toggleIsolate: (meshId: string | null) => void;
   renameMesh: (meshId: string, newName: string) => void;
+  deleteMesh: (meshId: string) => void;
+  
+  // History Actions
+  undo: () => void;
+  redo: () => void;
   
   addInteraction: (interaction: Interaction) => void;
   removeInteraction: (interactionId: string) => void;
@@ -112,6 +123,11 @@ export const useEditorStore = create<EditorState>((set) => ({
   viewerSettings: {
     showControls: true,
     autoRotate: false,
+  },
+  
+  history: {
+    past: [],
+    future: []
   },
 
   setProjectTitle: (projectTitle) => set({ projectTitle, isDirty: true }),
@@ -201,32 +217,96 @@ export const useEditorStore = create<EditorState>((set) => ({
   }),
 
   renameMesh: (meshId, newName) => set((state) => {
-    // In Vorld, interactions are keyed by mesh name/id. 
-    // We update the key in the mapping.
     const newInteractions = { ...state.interactions };
     if (newInteractions[meshId]) {
       newInteractions[newName] = newInteractions[meshId];
       delete newInteractions[meshId];
     }
-    return { interactions: newInteractions, isDirty: true };
+    
+    // Also migration interaction key if it was the name
+    const primaryName = state.primarySelectionName === meshId ? newName : state.primarySelectionName;
+
+    return { 
+      interactions: newInteractions, 
+      primarySelectionName: primaryName,
+      isDirty: true 
+    };
+  }),
+
+  deleteMesh: (meshId) => set((state) => {
+    const newSelected = new Set(state.selectedMeshes);
+    newSelected.delete(meshId);
+    
+    const newHidden = new Set(state.hiddenMeshes);
+    newHidden.delete(meshId);
+    
+    const newInteractions = { ...state.interactions };
+    delete newInteractions[meshId];
+    if (state.primarySelectionName) delete newInteractions[state.primarySelectionName];
+
+    return {
+      selectedMeshes: newSelected,
+      hiddenMeshes: newHidden,
+      interactions: newInteractions,
+      primarySelection: state.primarySelection === meshId ? null : state.primarySelection,
+      primarySelectionName: state.primarySelection === meshId ? null : state.primarySelectionName,
+      isDirty: true
+    };
+  }),
+
+  undo: () => set((state) => {
+    if (state.history.past.length === 0) return state;
+    
+    const previous = state.history.past[state.history.past.length - 1];
+    const newPast = state.history.past.slice(0, state.history.past.length - 1);
+    
+    return {
+      interactions: previous,
+      history: {
+        past: newPast,
+        future: [state.interactions, ...state.history.future].slice(0, 20)
+      },
+      isDirty: true
+    };
+  }),
+
+  redo: () => set((state) => {
+    if (state.history.future.length === 0) return state;
+    
+    const next = state.history.future[0];
+    const newFuture = state.history.future.slice(1);
+    
+    return {
+      interactions: next,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: newFuture
+      },
+      isDirty: true
+    };
   }),
   
   addInteraction: (interaction) => set((state) => {
     if (state.selectedMeshes.size === 0) return state;
     const newInteractions = { ...state.interactions };
     
-    // Store key priority: Name > UUID
     const targetKey = state.primarySelectionName || state.primarySelection;
     if (!targetKey) return state;
 
     const meshInts = newInteractions[targetKey] ? [...newInteractions[targetKey]] : [];
-    // Only add if not already present by ID
     if (!meshInts.find(i => i.id === interaction.id)) {
       meshInts.push(JSON.parse(JSON.stringify(interaction)));
       newInteractions[targetKey] = meshInts;
     }
 
-    return { interactions: newInteractions, isDirty: true };
+    return { 
+      interactions: newInteractions, 
+      isDirty: true,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: []
+      }
+    };
   }),
 
   removeInteraction: (interactionId) => set((state) => {
@@ -242,7 +322,15 @@ export const useEditorStore = create<EditorState>((set) => ({
       }
     }
 
-    return changed ? { interactions: newInteractions, isDirty: true } : state;
+    if (!changed) return state;
+    return { 
+      interactions: newInteractions, 
+      isDirty: true,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: []
+      }
+    };
   }),
 
   updateInteraction: (interactionId, updates) => set((state) => {
@@ -260,7 +348,15 @@ export const useEditorStore = create<EditorState>((set) => ({
       });
     }
 
-    return changed ? { interactions: newInteractions, isDirty: true } : state;
+    if (!changed) return state;
+    return { 
+      interactions: newInteractions, 
+      isDirty: true,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: []
+      }
+    };
   }),
 
   addAction: (interactionId, action) => set((state) => {
@@ -278,7 +374,15 @@ export const useEditorStore = create<EditorState>((set) => ({
       });
     }
 
-    return changed ? { interactions: newInteractions, isDirty: true } : state;
+    if (!changed) return state;
+    return { 
+      interactions: newInteractions, 
+      isDirty: true,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: []
+      }
+    };
   }),
 
   removeAction: (interactionId, actionId) => set((state) => {
@@ -296,7 +400,15 @@ export const useEditorStore = create<EditorState>((set) => ({
       });
     }
 
-    return changed ? { interactions: newInteractions, isDirty: true } : state;
+    if (!changed) return state;
+    return { 
+      interactions: newInteractions, 
+      isDirty: true,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: []
+      }
+    };
   }),
 
   updateAction: (interactionId, actionId, config) => set((state) => {
@@ -317,7 +429,15 @@ export const useEditorStore = create<EditorState>((set) => ({
       });
     }
 
-    return changed ? { interactions: newInteractions, isDirty: true } : state;
+    if (!changed) return state;
+    return { 
+      interactions: newInteractions, 
+      isDirty: true,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: []
+      }
+    };
   }),
   
   reorderAction: (interactionId, oldIndex, newIndex) => set((state) => {
@@ -338,7 +458,15 @@ export const useEditorStore = create<EditorState>((set) => ({
       });
     }
 
-    return changed ? { interactions: newInteractions, isDirty: true } : state;
+    if (!changed) return state;
+    return { 
+      interactions: newInteractions, 
+      isDirty: true,
+      history: {
+        past: [...state.history.past, state.interactions].slice(-20),
+        future: []
+      }
+    };
   }),
   
   setInteractions: (rawInteractions) => set((state) => {

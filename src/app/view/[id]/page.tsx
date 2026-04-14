@@ -17,6 +17,8 @@ import { useParams } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useInteractionRuntime } from "@/hooks/useInteractionRuntime";
 import { InfoPanelOverlay } from "@/components/shared/InfoPanelOverlay";
+import IntroScreen from "@/components/editor/IntroScreen";
+import { useEditorStore } from "@/stores/editorStore";
 
 function ViewerModel({ url, interactions }: { url: string, interactions: any }) {
   const { nodes } = useGLTF(url) as any;
@@ -64,7 +66,7 @@ export default function ViewPage() {
   const supabase = createClient();
   
   const [project, setProject] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { isLoading, setLoading, setProjectTitle } = useEditorStore();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,22 +81,23 @@ export default function ViewPage() {
         setError(error?.message || "Project not found or private");
       } else {
         setProject(data);
+        setProjectTitle(data.name);
       }
       setLoading(false);
     }
     loadProject();
-  }, [id, supabase]);
+  }, [id, supabase, setProjectTitle, setLoading]);
 
   const modelUrl = useMemo(() => {
     if (!project?.model_path) return null;
     return supabase.storage.from('models').getPublicUrl(project.model_path).data.publicUrl;
   }, [project, supabase]);
 
-  if (loading) {
+  if (isLoading && !project) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 text-accent animate-spin" />
-      </div>
+       <div className="h-screen w-full bg-[#0b0f14]">
+         <IntroScreen />
+       </div>
     );
   }
 
@@ -112,6 +115,7 @@ export default function ViewPage() {
 
   return (
     <div className="h-screen w-full bg-[#0d0d0d] overflow-hidden relative">
+      <IntroScreen />
       {/* Branding Overlay */}
       <div className="absolute top-6 left-6 z-10">
         <div className="flex items-center gap-3">

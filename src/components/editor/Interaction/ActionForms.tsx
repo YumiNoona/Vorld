@@ -10,16 +10,72 @@ import { useEditorStore, InteractionAction } from "@/stores/editorStore";
 import { ActionStack } from "./ActionStack";
 import { cn } from "@/lib/utils";
 
+// Blender-style 3D Icons (Simplified SVG Components)
+const IconSparkles = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+    <path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" />
+  </svg>
+);
+
+const IconSun = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+  </svg>
+);
+
+const IconMaximize = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="m15 3 6 6" /><path d="M9 21 3 15" /><path d="M21 3v6h-6" /><path d="M3 21v-6h6" />
+  </svg>
+);
+
+const IconCamera = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+  </svg>
+);
+
+const IconActivity = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </svg>
+);
+
+const IconVolume2 = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+  </svg>
+);
+
+const IconFileText = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14.5 2 14.5 7.5 20 7.5" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" />
+  </svg>
+);
+
+const IconLink = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+);
+
+const IconToggleLeft = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect width="20" height="12" x="2" y="6" rx="6" ry="6" /><circle cx="8" cy="12" r="2" />
+  </svg>
+);
+
 export const ACTION_TYPES = [
-  { id: "highlight", label: "Color Highlight", icon: Sparkles },
-  { id: "glow", icon: Sun, label: "Emissive Glow" },
-  { id: "scale", icon: Maximize, label: "Scale Transform" },
-  { id: "camera_focus", icon: Camera, label: "Camera Focus" },
-  { id: "animation", icon: Activity, icon_alt: Play, label: "GLTF Animation" },
-  { id: "audio", icon: Volume2, label: "Spatial Audio" },
-  { id: "info_panel", icon: FileText, label: "Overlay Panel" },
-  { id: "url", icon: Link, label: "Open Link" },
-  { id: "toggle", icon: ToggleLeft, label: "State Toggle" },
+  { id: "highlight", label: "Color Highlight", icon: IconSparkles },
+  { id: "glow", icon: IconSun, label: "Emissive Glow" },
+  { id: "scale", icon: IconMaximize, label: "Scale Transform" },
+  { id: "camera_focus", icon: IconCamera, label: "Camera Focus" },
+  { id: "animation", icon: IconActivity, label: "GLTF Animation" },
+  { id: "audio", icon: IconVolume2, label: "Spatial Audio" },
+  { id: "info_panel", icon: IconFileText, label: "Overlay Panel" },
+  { id: "url", icon: IconLink, label: "Open Link" },
+  { id: "toggle", icon: IconToggleLeft, label: "State Toggle" },
 ];
 
 interface ActionFormProps {
