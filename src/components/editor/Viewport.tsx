@@ -10,7 +10,6 @@ import { useInteractionRuntime } from "@/hooks/useInteractionRuntime";
 import { EditorContextMenu } from "./EditorContextMenu";
 import { createOutlineMaterial } from "./OutlineMaterial";
 import CameraRig from "./CameraRig";
-import WorldTooltip from "./WorldTooltip";
 
 type GLTFResult = {
   nodes: Record<string, THREE.Object3D>;
@@ -83,8 +82,6 @@ function SceneManager({ url }: { url: string }) {
       useEditorStore.getState().setAnimations(animationNames);
     }
   }, [animations]);
-
-  const [hovered, setHovered] = useState<{ name: string; position: [number, number, number] } | null>(null);
 
   const { runInteraction } = useInteractionRuntime();
 
@@ -220,17 +217,15 @@ function SceneManager({ url }: { url: string }) {
           if (!e.object.isMesh) return;
           e.stopPropagation();
           document.body.style.cursor = "pointer";
-          const mesh = e.object;
-          setHovered({ name: mesh.name, position: [e.point.x, e.point.y, e.point.z] });
           
           if (previewMode) {
+             const mesh = e.object;
              const interactions = interactionsStore[mesh.uuid] || interactionsStore[mesh.name] || EMPTY_INTERACTIONS;
              runInteraction(mesh, interactions, "hover");
           }
         }}
         onPointerOut={(e: any) => {
           document.body.style.cursor = "auto";
-          setHovered(null);
           if (previewMode && e.object.isMesh) {
              const mesh = e.object;
              const interactions = interactionsStore[mesh.uuid] || interactionsStore[mesh.name] || EMPTY_INTERACTIONS;
@@ -238,7 +233,6 @@ function SceneManager({ url }: { url: string }) {
           }
         }}
       />
-      <WorldTooltip hovered={hovered} />
     </group>
   );
 }
@@ -370,7 +364,7 @@ export function Viewport() {
         />
 
         <Suspense fallback={null}>
-          <SceneManager url={modelUrl} />
+          {modelUrl && <SceneManager url={modelUrl} />}
           {!previewMode && <SelectionHighlights />}
           <CameraRig />
 

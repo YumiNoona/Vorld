@@ -90,7 +90,11 @@ h1, h2, h3, h4, h5, h6 {
 /* Clean UI: No AI Slop (Gradients/Glows) */
 * {
   text-shadow: none !important;
-  box-shadow: none !important;
+}
+
+/* Clean focus states — let Tailwind ring utilities handle visibility */
+:focus-visible {
+  outline: none;
 }
 
 /* Base Interactions */
@@ -117,4 +121,27 @@ button:active {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Resizing System */
+body.resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+body.resizing * {
+  pointer-events: none !important;
+}
+
+body.resizing .resizer-handle {
+  pointer-events: auto !important;
+}
+
+/* Premium Panel Transitions */
+.editor-panel-transition {
+  transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.resizing .editor-panel-transition {
+  transition: none !important;
 }

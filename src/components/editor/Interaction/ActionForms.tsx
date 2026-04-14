@@ -4,7 +4,8 @@ import React from "react";
 import { 
   Trash2, X, Box, GripVertical, Settings2, Sparkles, 
   Zap, Play, Info, ExternalLink, ChevronDown, ChevronUp,
-  Sun, Maximize, Camera, Activity, Volume2, FileText, Link, ToggleLeft
+  Sun, Maximize, Camera, Activity, Volume2, FileText, Link, ToggleLeft,
+  Move3D, Palette, Tag, PartyPopper, Eye, CloudSun
 } from "lucide-react";
 import { useEditorStore, InteractionAction } from "@/stores/editorStore";
 import { ActionStack } from "./ActionStack";
@@ -67,15 +68,21 @@ const IconToggleLeft = (props: any) => (
 );
 
 export const ACTION_TYPES = [
-  { id: "highlight", label: "Color Highlight", icon: IconSparkles },
-  { id: "glow", icon: IconSun, label: "Emissive Glow" },
-  { id: "scale", icon: IconMaximize, label: "Scale Transform" },
-  { id: "camera_focus", icon: IconCamera, label: "Camera Focus" },
-  { id: "animation", icon: IconActivity, label: "GLTF Animation" },
-  { id: "audio", icon: IconVolume2, label: "Spatial Audio" },
-  { id: "info_panel", icon: IconFileText, label: "Overlay Panel" },
-  { id: "url", icon: IconLink, label: "Open Link" },
-  { id: "toggle", icon: IconToggleLeft, label: "State Toggle" },
+  { id: "highlight", label: "Color Highlight", icon: IconSparkles, description: "Tint the mesh with a color" },
+  { id: "glow", icon: IconSun, label: "Emissive Glow", description: "Add emissive light to the mesh" },
+  { id: "scale", icon: IconMaximize, label: "Scale Transform", description: "Resize the mesh on interaction" },
+  { id: "camera_focus", icon: IconCamera, label: "Camera Focus", description: "Fly camera to the mesh" },
+  { id: "animation", icon: IconActivity, label: "GLTF Animation", description: "Play a model animation clip" },
+  { id: "audio", icon: IconVolume2, label: "Spatial Audio", description: "Play a sound on interaction" },
+  { id: "info_panel", icon: IconFileText, label: "Overlay Panel", description: "Show an info card overlay" },
+  { id: "url", icon: IconLink, label: "Open Link", description: "Navigate to an external URL" },
+  { id: "toggle", icon: IconToggleLeft, label: "State Toggle", description: "Toggle between two action sets" },
+  { id: "explode_view", icon: Move3D, label: "Explode View", description: "Move mesh outward from center" },
+  { id: "material_swap", icon: Palette, label: "Material Swap", description: "Change color/roughness/metalness" },
+  { id: "label_pin", icon: Tag, label: "Label Pin", description: "Pin a floating 2D label to mesh" },
+  { id: "particle_burst", icon: PartyPopper, label: "Particle Burst", description: "Emit particles from mesh center" },
+  { id: "reveal_hidden", icon: Eye, label: "Reveal Hidden", description: "Animate a hidden mesh into view" },
+  { id: "set_environment", icon: CloudSun, label: "Set Environment", description: "Switch the IBL environment preset" },
 ];
 
 interface ActionFormProps {
@@ -324,6 +331,207 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
                 onUpdateStack={(newActions) => onUpdate({ states: { ...config.states, off: newActions } })}
               />
             </div>
+          </div>
+        </div>
+      );
+
+    // ── NEW INTERACTION TYPES ──
+
+    case "explode_view":
+      return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <InputLabel>Direction</InputLabel>
+              <div className="relative">
+                <select 
+                  value={config.direction || "auto"} 
+                  onChange={e => onUpdate({ direction: e.target.value })}
+                  className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer"
+                >
+                  <option value="auto">Auto</option>
+                  <option value="x">X Axis</option>
+                  <option value="y">Y Axis</option>
+                  <option value="z">Z Axis</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
+              </div>
+            </div>
+            <div>
+              <InputLabel>Distance</InputLabel>
+              <input 
+                type="number" 
+                step="0.1" 
+                className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all" 
+                value={config.distance ?? 0.5} 
+                onChange={e => onUpdate({ distance: parseFloat(e.target.value) })} 
+              />
+            </div>
+          </div>
+          <div className="w-24">
+            <InputLabel>Duration</InputLabel>
+            <div className="relative flex items-center">
+              <input 
+                type="number" step="0.05" 
+                className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" 
+                value={config.duration ?? 0.4} 
+                onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} 
+              />
+              <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+            </div>
+          </div>
+        </div>
+      );
+
+    case "material_swap":
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <InputLabel>Color</InputLabel>
+              <div className="flex items-center gap-3 bg-bg-primary border border-border-default h-9 px-3 rounded-lg relative overflow-hidden">
+                <input type="color" value={config.color || "#ffffff"} onChange={e => onUpdate({ color: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                <div className="w-4 h-4 rounded-full border border-black/10 ring-1 ring-white/10" style={{ backgroundColor: config.color || "#ffffff" }} />
+                <span className="text-sm font-mono text-text-primary tracking-tight">{(config.color || "#FFFFFF").toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <InputLabel>Roughness</InputLabel>
+              <input type="number" step="0.1" min="0" max="1" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all text-center" value={config.roughness ?? 0.5} onChange={e => onUpdate({ roughness: parseFloat(e.target.value) })} />
+            </div>
+            <div>
+              <InputLabel>Metalness</InputLabel>
+              <input type="number" step="0.1" min="0" max="1" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all text-center" value={config.metalness ?? 0.8} onChange={e => onUpdate({ metalness: parseFloat(e.target.value) })} />
+            </div>
+            <div>
+              <InputLabel>Duration</InputLabel>
+              <div className="relative flex items-center">
+                <input type="number" step="0.05" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" value={config.duration ?? 0.3} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
+                <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case "label_pin":
+      return (
+        <div className="space-y-4">
+          <div>
+            <InputLabel>Label Text</InputLabel>
+            <input type="text" placeholder="Enter label text..." value={config.text || ""} onChange={e => onUpdate({ text: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent transition-all" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <InputLabel>Font Size</InputLabel>
+              <input type="number" min="8" max="32" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all text-center" value={config.fontSize ?? 14} onChange={e => onUpdate({ fontSize: parseInt(e.target.value) })} />
+            </div>
+            <div>
+              <InputLabel>Background</InputLabel>
+              <div className="flex items-center gap-2 bg-bg-primary border border-border-default h-9 px-2 rounded-lg relative overflow-hidden">
+                <input type="color" value={config.backgroundColor || "#000000"} onChange={e => onUpdate({ backgroundColor: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: config.backgroundColor || "#000000" }} />
+                <span className="text-[10px] font-mono text-text-primary">{(config.backgroundColor || "#000000").toUpperCase()}</span>
+              </div>
+            </div>
+            <div>
+              <InputLabel>Position</InputLabel>
+              <div className="relative">
+                <select value={config.position || "top"} onChange={e => onUpdate({ position: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-2 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer">
+                  <option value="top">Top</option>
+                  <option value="right">Right</option>
+                  <option value="left">Left</option>
+                </select>
+                <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case "particle_burst":
+      return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <InputLabel>Particle Count</InputLabel>
+              <input type="number" min="5" max="100" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all" value={config.count ?? 20} onChange={e => onUpdate({ count: parseInt(e.target.value) })} />
+            </div>
+            <div>
+              <InputLabel>Color</InputLabel>
+              <div className="flex items-center gap-3 bg-bg-primary border border-border-default h-9 px-3 rounded-lg relative overflow-hidden">
+                <input type="color" value={config.color || "#10b981"} onChange={e => onUpdate({ color: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                <div className="w-4 h-4 rounded-full border border-black/10 ring-1 ring-white/10" style={{ backgroundColor: config.color || "#10b981" }} />
+                <span className="text-sm font-mono text-text-primary tracking-tight">{(config.color || "#10B981").toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <InputLabel>Particle Size</InputLabel>
+              <input type="number" step="0.01" min="0.01" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all" value={config.size ?? 0.05} onChange={e => onUpdate({ size: parseFloat(e.target.value) })} />
+            </div>
+            <div>
+              <InputLabel>Duration</InputLabel>
+              <div className="relative flex items-center">
+                <input type="number" step="0.1" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" value={config.duration ?? 1.0} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
+                <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case "reveal_hidden":
+      return (
+        <div className="space-y-4">
+          <div>
+            <InputLabel>Target Mesh Name</InputLabel>
+            <input type="text" placeholder="Enter mesh name to reveal..." value={config.targetMeshName || ""} onChange={e => onUpdate({ targetMeshName: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent transition-all" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <InputLabel>Animation Type</InputLabel>
+              <div className="relative">
+                <select value={config.animationType || "fade"} onChange={e => onUpdate({ animationType: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer">
+                  <option value="fade">Fade In</option>
+                  <option value="scale_in">Scale In</option>
+                  <option value="slide_up">Slide Up</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
+              </div>
+            </div>
+            <div>
+              <InputLabel>Duration</InputLabel>
+              <div className="relative flex items-center">
+                <input type="number" step="0.05" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" value={config.duration ?? 0.4} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
+                <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case "set_environment":
+      return (
+        <div className="space-y-1">
+          <InputLabel>Environment Preset</InputLabel>
+          <div className="relative">
+            <select 
+              value={config.preset || "city"} 
+              onChange={e => onUpdate({ preset: e.target.value })}
+              className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer"
+            >
+              <option value="city">City</option>
+              <option value="sunset">Sunset</option>
+              <option value="dawn">Dawn</option>
+              <option value="night">Night</option>
+              <option value="forest">Forest</option>
+              <option value="studio">Studio</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
           </div>
         </div>
       );

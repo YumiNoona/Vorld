@@ -99,7 +99,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@example.com"
             disabled={isLoading}
-            className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus focus:ring-2 focus:ring-accent-subtle transition-all outline-none disabled:opacity-50"
+            className="w-full h-10 px-4 rounded-lg bg-bg-secondary border border-border-default focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 transition-all outline-none disabled:opacity-50 text-text-primary placeholder:text-text-secondary/50"
           />
         </div>
 
@@ -119,7 +119,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               disabled={isLoading}
-              className="w-full h-10 px-4 rounded-lg bg-background-subtle border border-border-primary focus:border-border-focus focus:ring-2 focus:ring-accent-subtle transition-all outline-none disabled:opacity-50"
+              className="w-full h-10 px-4 rounded-lg bg-bg-secondary border border-border-default focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 transition-all outline-none disabled:opacity-50 text-text-primary placeholder:text-text-secondary/50"
             />
             <button
               type="button"

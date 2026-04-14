@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { TriggerSettings } from "./Interaction/TriggerSettings";
 import { ActionStack } from "./Interaction/ActionStack";
 
-export function InteractionPanel() {
+export function InteractionPanel({ width, isCollapsed }: { width?: number, isCollapsed?: boolean }) {
   const { 
     interactions, 
     addInteraction, 
@@ -31,16 +31,30 @@ export function InteractionPanel() {
      ? `${selectedMeshes.size} Items Selected`
      : (primarySelectionName || primarySelection);
 
+  const panelStyle = {
+    width: width !== undefined ? `${width}px` : '384px',
+  };
+
   if (!primarySelection) {
     return (
-      <aside className="w-[384px] border-l border-border-default bg-bg-secondary shrink-0 flex flex-col items-center justify-center p-10 text-center bg-bg-secondary/50 transition-all duration-300">
+      <aside 
+        style={panelStyle}
+        className={cn(
+          "border-l border-border-default bg-bg-secondary shrink-0 flex flex-col items-center justify-center p-10 text-center bg-bg-secondary/50 editor-panel-transition",
+          isCollapsed ? "overflow-hidden border-none" : ""
+        )}
+      >
         <div className="w-16 h-16 rounded-3xl bg-bg-primary flex items-center justify-center text-text-tertiary mb-8 border border-border-default shadow-xl">
           <MousePointer2 className="w-6 h-6 opacity-40" />
         </div>
-        <h3 className="text-sm font-bold text-text-primary mb-3 uppercase tracking-widest">No Selection</h3>
-        <p className="text-[13px] text-text-secondary leading-relaxed max-w-[240px]">
-          Select an object in the viewport to configure its properties and interactions.
-        </p>
+        {!isCollapsed && (
+          <>
+            <h3 className="text-sm font-bold text-text-primary mb-3 uppercase tracking-widest">No Selection</h3>
+            <p className="text-[13px] text-text-secondary leading-relaxed max-w-[240px]">
+              Select an object in the viewport to configure its properties and interactions.
+            </p>
+          </>
+        )}
       </aside>
     );
   }
@@ -57,7 +71,13 @@ export function InteractionPanel() {
   };
 
   return (
-    <aside className="w-[384px] border-l border-border-default bg-bg-primary shrink-0 flex flex-col z-10 transition-all duration-300 group/panel">
+    <aside 
+      style={panelStyle}
+      className={cn(
+        "border-l border-border-default bg-bg-primary shrink-0 flex flex-col z-10 editor-panel-transition group/panel",
+        isCollapsed ? "overflow-hidden border-none opacity-0 pointer-events-none" : "opacity-100"
+      )}
+    >
       <div className="h-12 border-b border-border-default px-4 flex items-center justify-between shrink-0 bg-bg-secondary/20">
         <div className="flex items-center gap-2 truncate">
            <span className="text-xs font-bold text-accent uppercase tracking-widest truncate max-w-[300px]">{headerText}</span>

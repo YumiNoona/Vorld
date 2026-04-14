@@ -19,7 +19,7 @@
 
 ## 📖 Overview
 
-**Vorld** (Venus) empowers creators and agencies to build, manage, and deploy interactive 3D environments using a **Configuration-Driven Runtime**. Instead of hardcoding interactions for every model, Vorld uses a unified JSON configuration system that controls everything from mesh-level highlights to complex data-triggered events.
+**Vorld** empowers creators and agencies to build, manage, and deploy interactive 3D environments using a **Configuration-Driven Runtime**. Instead of hardcoding interactions for every model, Vorld uses a unified JSON configuration system that controls everything from mesh-level highlights to complex spatial animations.
 
 ### Why Vorld?
 - **Zero-Code Interactivity**: Define hover effects, click actions, and camera transitions via the dashboard.
@@ -32,18 +32,19 @@
 ## ✨ Key Features
 
 ### 🎮 The 3D Engine
-- **High-Performance Primitive Architecture**: Optimized for hierarchical stability, ensuring 100% accurate object placement and frame-rate consistency through single-pass scene traversal.
-- **Atmospheric Controls**: Instant environment switching (Studio, City, Park) with high-fidelity contact shadows and silenced shader precision warnings.
-- **Industry-Standard Selection**: Dual-feedback highlighting with emerald-green outlines (halos) and wireframe bounding boxes, mirroring professional 3D software (Blender/Unity).
-- **Triggered Camera Presets**: Smoothly snap to 'Top' or 'Side' views with automated 'Snap-and-Release' logic, ensuring manual orbiting never feels locked.
-- **Custom Context Menu**: Right-click any object to access editor-specific tools (Rename, Hide, Isolate) via a premium Radix-UI portal that suppresses browser defaults.
-- **Interaction Logic**: Support for mesh-level interactivity including animations, audio triggers, and dynamic URL redirects.
+- **Liquid Glass Interface**: High-performance "Apple-style" dock with spring-tuned physics and Gaussian blur backdrops.
+- **15+ Interaction Types**: 
+  - **Visual**: Highlight, Glow, Material Swap, Particle Burst.
+  - **Spatial**: Camera Focus, Explode View, Reveal Hidden, Scale.
+  - **Logic**: Toggle States, URL Redirects, Info Panels, Animation Clips, Audio.
+- **Professional Asset Pipeline**: Automated 512x512 thumbnail generation for all uploaded `.glb` files with transparent background and studio framing.
+- **High-Performance selection**: Emerald-green halos and wireframe bounding boxes for precise editing.
+- **Atmospheric Controls**: Real-time environment preset switching (City, Sunset, Studio, etc.) with high-fidelity contact shadows.
 
 ### 🛠 The Creator Dashboard
 - **Visual Mesh Explorer**: Navigate your 3D hierarchy in real-time to target specific nodes for interactivity.
 - **Real-time Synchronization**: Changes in the editor auto-save to the cloud and reflect instantly in the viewport.
-- **Asset Pipeline**: Secure `.glb` model uploads with versioning and folder-based ownership rules.
-- **Publishing Suite**: One-click deployments with generated share links and embed-friendly viewer URLs.
+- **Project Suites**: Manage multiple project thumbnails, descriptions, and settings in a modern studio-grid UI.
 
 ---
 
@@ -53,10 +54,9 @@
 | :--- | :--- | :--- |
 | **Framework** | Next.js 15+ (App Router) | Server-side rendering (SSR) for SEO and high-speed client navigation. |
 | **3D Rendering** | React Three Fiber / Three.js | The industry standard for declarative 3D in React. |
-| **Styling** | Tailwind CSS v4 | Cutting-edge performance with utility-first workflow. |
-| **Database/Auth** | Supabase (@supabase/ssr) | Real-time database and secure server-side auth management. |
+| **Animation** | Framer Motion | Smooth, liquid UI transitions and spring physics. |
+| **Database** | Supabase (@supabase/ssr) | Real-time database and secure server-side auth management. |
 | **State** | Zustand | Lightweight and performant store for complex 3D editor states. |
-| **Animations** | Framer Motion | Smooth, premium UI transitions throughout the platform. |
 
 ---
 
@@ -68,13 +68,12 @@ Vorld/
 │   ├── app/                      # Next.js App Router (Auth, Dashboard, Editor)
 │   ├── components/
 │   │   ├── editor/               # Viewport, MeshExplorer, Logic Panels
-│   │   ├── landing/              # Marketing Hero & Live Demo sections
-│   │   ├── shared/               # Navigation, Modal, and Utility UI
+│   │   ├── shared/               # Liquid Dock, Project Modals, Navigation
 │   │   └── ui/                   # Design system primitives (Tailwind v4)
-│   ├── lib/                      # Supabase SSR clients and shared logic
-│   ├── stores/                   # Zustand state managers (Editor, UI)
-│   └── proxy.ts                  # Advanced route protection & redirection
-├── supabase/                     # SQL Schemas, Triggers, and RLS policies
+│   ├── hooks/                    # useInteractionRuntime, useThumbnailGenerator
+│   ├── lib/                      # Supabase clients and shared logic
+│   └── stores/                   # Zustand state (Editor, Viewer, UI)
+├── supabase/                     # SQL Schemas, Storage Buckets & RLS
 └── public/                       # Static environments and fallback assets
 ```
 
@@ -84,42 +83,28 @@ Vorld/
 
 ### 1. Installation
 ```bash
-# Clone the repository
 git clone https://github.com/YumiNoona/Vorld.git
-
-# Install dependencies
 npm install
 ```
 
 ### 2. Environment Setup
-Create a `.env.local` file with your credentials:
+Create a `.env.local` file:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-### 3. Deploy Database
-Run the contents of `supabase/schema.sql` in your Supabase SQL Editor to initialize tables, storage buckets, and RLS policies.
-
-### 4. Run Locally
+### 3. Run Locally
 ```bash
 npm run dev
 ```
 
 ---
 
-## 📝 License & Contributing
+## 📝 License
 
-Distributed under the **MIT License**. We welcome contributions that help push the boundaries of WebGL SaaS!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
+Distributed under the **MIT License**.
 
 <div align="center">
  Built with ❤️ by the Vorld Team.

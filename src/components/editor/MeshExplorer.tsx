@@ -13,18 +13,45 @@ import {
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
-export function MeshExplorer() {
+export function MeshExplorer({ width, isCollapsed }: { width?: number, isCollapsed?: boolean }) {
   const supabase = useMemo(() => createClient(), []);
-  const { modelPath, selectedMeshes, selectMesh, interactions } = useEditorStore();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const { modelPath } = useEditorStore();
   
   const modelUrl = useMemo(() => {
-    if (!modelPath) return "";
+    if (!modelPath) return null;
     return supabase.storage.from('models').getPublicUrl(modelPath).data.publicUrl;
   }, [modelPath, supabase]);
 
-  const { nodes } = useGLTF(modelUrl) as any;
+  // Handle styles
+  const panelStyle = {
+    width: width !== undefined ? `${width}px` : '384px',
+  };
+
+  return (
+    <aside 
+      style={panelStyle}
+      className={cn(
+        "border-r border-border-default bg-bg-primary shrink-0 flex flex-col z-10 editor-panel-transition",
+        isCollapsed ? "overflow-hidden border-none opacity-0" : "opacity-100"
+      )}
+    >
+      {!modelUrl ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Loader2 className="w-5 h-5 text-accent animate-spin" />
+        </div>
+      ) : (
+        <MeshList url={modelUrl} />
+      )}
+    </aside>
+  );
+}
+
+function MeshList({ url }: { url: string }) {
+  const { selectedMeshes, selectMesh, interactions } = useEditorStore();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const { nodes } = useGLTF(url) as any;
 
   const meshes = useMemo(() => {
     const allMeshes = Object.values(nodes || {}).filter((n: any) => n.isMesh);
@@ -34,16 +61,8 @@ export function MeshExplorer() {
     );
   }, [nodes, searchQuery]);
 
-  if (!modelUrl) {
-    return (
-      <aside className="w-[384px] border-r border-border-default bg-bg-secondary shrink-0 flex flex-col z-10 items-center justify-center p-6 transition-all duration-300">
-        <Loader2 className="w-5 h-5 text-accent animate-spin" />
-      </aside>
-    );
-  }
-
   return (
-    <aside className="w-[384px] border-r border-border-default bg-bg-primary shrink-0 flex flex-col z-10 transition-all duration-300">
+    <>
       <div className="h-12 border-b border-border-default px-4 flex items-center justify-between shrink-0 bg-bg-secondary/10">
         {isSearching ? (
           <div className="flex-1 flex items-center gap-2 animate-in slide-in-from-right-2 duration-200">
@@ -118,6 +137,6 @@ export function MeshExplorer() {
             Total nodes: {meshes.length}
          </p>
       </div>
-    </aside>
+    </>
   );
 }

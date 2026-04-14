@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useMemo } from "react";
+import React, { Suspense, useEffect, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { 
   OrbitControls, 
@@ -17,10 +17,12 @@ import { useParams } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useInteractionRuntime } from "@/hooks/useInteractionRuntime";
 import { InfoPanelOverlay } from "@/components/shared/InfoPanelOverlay";
+import { ViewerTooltip } from "@/components/shared/ViewerTooltip";
 import IntroScreen from "@/components/editor/IntroScreen";
 import { useEditorStore } from "@/stores/editorStore";
 
-function ViewerModel({ url, interactions }: { url: string, interactions: any }) {
+
+function ViewerModel({ url, interactions, onHover, onUnhover }: { url: string, interactions: any, onHover: (data: any) => void, onUnhover: () => void }) {
   const { nodes } = useGLTF(url) as any;
   const { runInteraction } = useInteractionRuntime();
   
@@ -29,6 +31,9 @@ function ViewerModel({ url, interactions }: { url: string, interactions: any }) 
       {Object.entries(nodes).map(([name, node]: [string, any]) => {
         if (node.isMesh) {
           const meshInteractions = interactions[name] || [];
+          // Find info_panel title for tooltip label
+          const infoPanelAction = meshInteractions.flatMap((i: any) => i.actions || []).find((a: any) => a.type === "info_panel");
+          const tooltipLabel = infoPanelAction?.config?.title || undefined;
           return (
             <mesh
               key={name}
@@ -44,11 +49,20 @@ function ViewerModel({ url, interactions }: { url: string, interactions: any }) 
               }}
               onPointerOver={(e) => {
                 e.stopPropagation();
-                if (meshInteractions.length > 0) document.body.style.cursor = "pointer";
+                if (meshInteractions.length > 0) {
+                  document.body.style.cursor = "pointer";
+                  onHover({
+                    name,
+                    position: [e.point.x, e.point.y, e.point.z],
+                    hasInteractions: true,
+                    label: tooltipLabel,
+                  });
+                }
                 runInteraction(e.object as THREE.Mesh, meshInteractions, "hover");
               }}
               onPointerOut={(e) => {
                 document.body.style.cursor = "auto";
+                onUnhover();
                 runInteraction(e.object as THREE.Mesh, meshInteractions, "unhover");
               }}
             />
@@ -87,6 +101,11 @@ export default function ViewPage() {
     }
     loadProject();
   }, [id, supabase, setProjectTitle, setLoading]);
+
+  const [tooltipData, setTooltipData] = useState<any>(null);
+
+  const handleHover = useCallback((data: any) => setTooltipData(data), []);
+  const handleUnhover = useCallback(() => setTooltipData(null), []);
 
   const modelUrl = useMemo(() => {
     if (!project?.model_path) return null;
@@ -152,9 +171,10 @@ export default function ViewPage() {
         
         <Suspense fallback={null}>
           <Stage environment="studio" intensity={0.5} shadows={false} adjustCamera={false}>
-            {modelUrl && <ViewerModel url={modelUrl} interactions={project.interactions || {}} />}
+            {modelUrl && <ViewerModel url={modelUrl} interactions={project.interactions || {}} onHover={handleHover} onUnhover={handleUnhover} />}
           </Stage>
           <ContactShadows position={[0, -0.8, 0]} opacity={0.4} scale={10} blur={2.5} far={0.8} />
+          <ViewerTooltip hovered={tooltipData} />
         </Suspense>
 
         <OrbitControls 

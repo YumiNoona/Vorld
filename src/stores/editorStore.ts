@@ -5,7 +5,7 @@ export type CameraMode = 'free' | 'top' | 'side';
 
 export interface InteractionAction {
   id: string;
-  type: "highlight" | "glow" | "scale" | "camera_focus" | "audio" | "animation" | "info_panel" | "toggle" | "url";
+  type: "highlight" | "glow" | "scale" | "camera_focus" | "audio" | "animation" | "info_panel" | "toggle" | "url" | "explode_view" | "material_swap" | "label_pin" | "particle_burst" | "reveal_hidden" | "set_environment";
   config: Record<string, any>;
 }
 
@@ -89,6 +89,20 @@ interface EditorState {
   setCameraMode: (mode: CameraMode) => void;
   
   setViewerSettings: (settings: Partial<{ showControls: boolean, autoRotate: boolean }>) => void;
+
+  // Panel Widths
+  leftWidth: number;
+  rightWidth: number;
+  prevLeftWidth: number;
+  prevRightWidth: number;
+  leftCollapsed: boolean;
+  rightCollapsed: boolean;
+  setLeftWidth: (width: number) => void;
+  setRightWidth: (width: number) => void;
+  toggleLeftCollapse: () => void;
+  toggleRightCollapse: () => void;
+  resetPanelWidths: () => void;
+
   reset: () => void;
 }
 
@@ -129,6 +143,14 @@ export const useEditorStore = create<EditorState>((set) => ({
     past: [],
     future: []
   },
+
+  // Panel Defaults
+  leftWidth: 320,
+  rightWidth: 384,
+  prevLeftWidth: 320,
+  prevRightWidth: 384,
+  leftCollapsed: false,
+  rightCollapsed: false,
 
   setProjectTitle: (projectTitle) => set({ projectTitle, isDirty: true }),
   setModelPath: (path) => set({ modelPath: path }),
@@ -552,6 +574,60 @@ export const useEditorStore = create<EditorState>((set) => ({
      return { viewerSettings: next, isDirty: true };
   }),
 
+  // Centralized Clamping & Snapping Logic
+  setLeftWidth: (width) => set((state) => {
+    let finalWidth = Math.min(600, Math.max(0, width));
+    
+    // Magnetic Snapping
+    if (finalWidth < 40) finalWidth = 0;
+    else if (finalWidth < 280) finalWidth = 260; 
+    else if (finalWidth > 580) finalWidth = 600;
+    
+    return { 
+      leftWidth: finalWidth,
+      leftCollapsed: finalWidth === 0,
+      ...(finalWidth > 0 ? { prevLeftWidth: finalWidth } : {})
+    };
+  }),
+
+  setRightWidth: (width) => set((state) => {
+    let finalWidth = Math.min(600, Math.max(0, width));
+    
+    // Magnetic Snapping
+    if (finalWidth < 40) finalWidth = 0;
+    else if (finalWidth < 280) finalWidth = 260;
+    else if (finalWidth > 580) finalWidth = 600;
+
+    return { 
+      rightWidth: finalWidth,
+      rightCollapsed: finalWidth === 0,
+      ...(finalWidth > 0 ? { prevRightWidth: finalWidth } : {})
+    };
+  }),
+
+  toggleLeftCollapse: () => set((state) => {
+    if (state.leftCollapsed) {
+      return { leftWidth: state.prevLeftWidth, leftCollapsed: false };
+    } else {
+      return { prevLeftWidth: state.leftWidth, leftWidth: 0, leftCollapsed: true };
+    }
+  }),
+
+  toggleRightCollapse: () => set((state) => {
+    if (state.rightCollapsed) {
+      return { rightWidth: state.prevRightWidth, rightCollapsed: false };
+    } else {
+      return { prevRightWidth: state.rightWidth, rightWidth: 0, rightCollapsed: true };
+    }
+  }),
+
+  resetPanelWidths: () => set({ 
+    leftWidth: 320, 
+    rightWidth: 384, 
+    leftCollapsed: false, 
+    rightCollapsed: false 
+  }),
+
   reset: () => set({
     modelPath: null,
     projectTitle: "Untitled Vorld",
@@ -567,6 +643,11 @@ export const useEditorStore = create<EditorState>((set) => ({
     previewMode: false,
     animations: [],
     renderMode: 'texture',
-    cameraMode: 'free'
+    cameraMode: 'free',
+    leftWidth: 320,
+    rightWidth: 384,
+    leftCollapsed: false,
+    rightCollapsed: false
   })
 }));
+

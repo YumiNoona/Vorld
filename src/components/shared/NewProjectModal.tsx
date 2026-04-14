@@ -24,6 +24,79 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUsageStats } from "@/hooks/useUsageStats";
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+/** Off-screen thumbnail generator. Returns public URL or null. Never throws. */
+async function generateThumbnail(
+  file: File,
+  projectId: string,
+  userId: string,
+  supabase: ReturnType<typeof createClient>
+): Promise<string | null> {
+  let renderer: THREE.WebGLRenderer | null = null;
+  try {
+    // 1. Create off-screen renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    renderer.setSize(512, 512);
+    renderer.setClearColor(0x000000, 0); // transparent background
+    renderer.setPixelRatio(1);
+
+    // 2. Setup scene
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+
+    // 3. Load GLB from File blob
+    const arrayBuffer = await file.arrayBuffer();
+    const loader = new GLTFLoader();
+    const gltf = await new Promise<any>((resolve, reject) => {
+      loader.parse(arrayBuffer, "", resolve, reject);
+    });
+    scene.add(gltf.scene);
+
+    // 4. Auto-frame camera to model bounding box
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    camera.position.set(center.x, center.y, center.z + size.length());
+    camera.lookAt(center);
+
+    // 5. Render
+    renderer.render(scene, camera);
+
+    // 6. Extract blob
+    const blob = await new Promise<Blob | null>((resolve) => {
+      renderer!.domElement.toBlob((b) => resolve(b), "image/jpeg", 0.85);
+    });
+    if (!blob) return null;
+
+    // 7. Upload to Supabase
+    const thumbPath = `thumbnails/${projectId}.jpg`;
+    const { error: uploadErr } = await supabase.storage
+      .from("thumbnails")
+      .upload(thumbPath, blob, { upsert: true, contentType: "image/jpeg" });
+    if (uploadErr) {
+      console.warn("Thumbnail upload failed:", uploadErr);
+      return null;
+    }
+
+    const { data } = supabase.storage.from("thumbnails").getPublicUrl(thumbPath);
+    return data.publicUrl;
+  } catch (err) {
+    console.warn("Thumbnail generation failed, continuing...", err);
+    return null;
+  } finally {
+    if (renderer) {
+      renderer.dispose();
+      renderer.forceContextLoss();
+      (renderer as any).domElement = null; // Break reference to ensure GC collects WebGL context
+    }
+  }
+}
 
 export function NewProjectModal({ children }: { children?: React.ReactNode }) {
   const router = useRouter();
@@ -36,6 +109,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
   const [description, setDescription] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [thumbnailStatus, setThumbnailStatus] = useState<string | null>(null);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -140,6 +214,21 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
           .eq('id', user.id)
       ]);
 
+      // 5. Thumbnail Generation (never blocks project creation)
+      setThumbnailStatus("Generating preview…");
+      try {
+        const thumbnailUrl = await generateThumbnail(file, project.id, user.id, supabase);
+        if (thumbnailUrl) {
+          await supabase
+            .from('projects')
+            .update({ thumbnail_url: thumbnailUrl })
+            .eq('id', project.id);
+        }
+      } catch (thumbErr) {
+        console.warn("Thumbnail generation failed, continuing...", thumbErr);
+      }
+      setThumbnailStatus(null);
+
       toast.success("Project created successfully!");
       router.push(`/editor/${project.id}`);
     } catch (error: any) {
@@ -149,7 +238,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
   };
 
   return (
-    <Dialog onOpenChange={() => { setStep(1); setFile(null); setUploadProgress(0); setName(""); setDescription(""); setIsProcessing(false); }}>
+    <Dialog onOpenChange={() => { setStep(1); setFile(null); setUploadProgress(0); setName(""); setDescription(""); setIsProcessing(false); setThumbnailStatus(null); }}>
       <DialogTrigger asChild>
         {children || (
           <button className="h-10 px-4 flex items-center gap-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg shadow-lg active:scale-95 transition-all">
@@ -282,21 +371,21 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                        <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                           <div className="flex flex-col gap-1">
                             <span className="text-accent animate-pulse">
-                              {uploadProgress < 100 ? "Uploading Assets..." : "Finalizing Project..."}
+                              {thumbnailStatus ? thumbnailStatus : uploadProgress < 100 ? "Uploading Assets..." : "Finalizing Project..."}
                             </span>
-                            {uploadProgress < 100 && file && (
+                            {!thumbnailStatus && uploadProgress < 100 && file && (
                               <span className="text-[10px] text-slate-500 font-medium normal-case">
                                 Est. time: {Math.max(1, Math.ceil((file.size * (1 - uploadProgress/100)) / (500 * 1024)))}s remaining
                               </span>
                             )}
                           </div>
-                          <span className="text-white">{uploadProgress}%</span>
+                          {!thumbnailStatus && <span className="text-white">{uploadProgress}%</span>}
                        </div>
                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
                           <motion.div 
                             className="h-full bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                             initial={{ width: 0 }}
-                            animate={{ width: `${uploadProgress}%` }}
+                            animate={{ width: thumbnailStatus ? '100%' : `${uploadProgress}%` }}
                           />
                        </div>
                     </div>

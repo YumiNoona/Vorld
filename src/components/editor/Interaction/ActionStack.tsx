@@ -68,6 +68,12 @@ export function ActionStack({ interactionId, actions, animations, onUpdateStack 
     if (type === "audio") defaultConfig = { src: "", volume: 1, loop: false };
     if (type === "animation") defaultConfig = { clip: animations[0] || "", loop: true };
     if (type === "toggle") defaultConfig = { stateKey: `toggle_${Math.random().toString(36).substr(2, 5)}`, states: { on: [], off: [] } };
+    if (type === "explode_view") defaultConfig = { direction: "auto", distance: 0.5, duration: 0.4 };
+    if (type === "material_swap") defaultConfig = { color: "#ffffff", roughness: 0.5, metalness: 0.8, duration: 0.3 };
+    if (type === "label_pin") defaultConfig = { text: "", fontSize: 14, backgroundColor: "#000000", position: "top" };
+    if (type === "particle_burst") defaultConfig = { count: 20, color: "#10b981", size: 0.05, duration: 1.0 };
+    if (type === "reveal_hidden") defaultConfig = { targetMeshName: "", animationType: "fade", duration: 0.4 };
+    if (type === "set_environment") defaultConfig = { preset: "city" };
 
     const newAction: InteractionAction = {
       id: Math.random().toString(36).substr(2, 9),
@@ -149,33 +155,54 @@ export function ActionStack({ interactionId, actions, animations, onUpdateStack 
                   side="bottom" 
                   align="center" 
                   sideOffset={8}
-                  className="w-64 bg-bg-primary/95 backdrop-blur-xl border border-border-default rounded-xl shadow-2xl z-[100] p-1 animate-in fade-in zoom-in-95 duration-150"
+                  className="w-72 bg-bg-primary/95 backdrop-blur-xl border border-border-default rounded-xl shadow-2xl z-[100] p-1 animate-in fade-in zoom-in-95 duration-150"
                >
                   <Command>
                      <CommandInput placeholder="Search actions..." className="h-9" />
-                     <CommandList className="max-h-[280px]">
+                     <CommandList className="max-h-[360px]">
                         <CommandEmpty>No action found.</CommandEmpty>
                         <CommandGroup heading="Visual Effects">
-                           {ACTION_TYPES.filter(a => ["highlight", "glow", "scale"].includes(a.id)).map(type => (
+                           {ACTION_TYPES.filter(a => ["highlight", "glow", "scale", "material_swap"].includes(a.id)).map(type => (
                               <CommandItem 
                                  key={type.id} 
                                  onSelect={() => handleAddAction(type.id)}
-                                 className="flex items-center gap-2 px-2 py-2 cursor-pointer"
+                                 className="flex items-center gap-3 px-2 py-2.5 cursor-pointer"
                               >
-                                 <type.icon className="w-3.5 h-3.5 text-accent" />
-                                 <span className="text-xs font-medium">{type.label}</span>
+                                 <type.icon className="w-3.5 h-3.5 text-accent shrink-0" />
+                                 <div className="flex flex-col min-w-0">
+                                   <span className="text-xs font-medium">{type.label}</span>
+                                   <span className="text-[10px] text-text-tertiary truncate">{type.description}</span>
+                                 </div>
                               </CommandItem>
                            ))}
                         </CommandGroup>
                         <CommandGroup heading="Scene Flow">
-                           {ACTION_TYPES.filter(a => ["camera_focus", "animation", "audio"].includes(a.id)).map(type => (
+                           {ACTION_TYPES.filter(a => ["camera_focus", "animation", "audio", "set_environment"].includes(a.id)).map(type => (
                               <CommandItem 
                                  key={type.id} 
                                  onSelect={() => handleAddAction(type.id)}
-                                 className="flex items-center gap-2 px-2 py-2 cursor-pointer"
+                                 className="flex items-center gap-3 px-2 py-2.5 cursor-pointer"
                               >
-                                 <type.icon className="w-3.5 h-3.5 text-blue-400" />
-                                 <span className="text-xs font-medium">{type.label}</span>
+                                 <type.icon className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                 <div className="flex flex-col min-w-0">
+                                   <span className="text-xs font-medium">{type.label}</span>
+                                   <span className="text-[10px] text-text-tertiary truncate">{type.description}</span>
+                                 </div>
+                              </CommandItem>
+                           ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Spatial">
+                           {ACTION_TYPES.filter(a => ["explode_view", "label_pin", "particle_burst", "reveal_hidden"].includes(a.id)).map(type => (
+                              <CommandItem 
+                                 key={type.id} 
+                                 onSelect={() => handleAddAction(type.id)}
+                                 className="flex items-center gap-3 px-2 py-2.5 cursor-pointer"
+                              >
+                                 <type.icon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                 <div className="flex flex-col min-w-0">
+                                   <span className="text-xs font-medium">{type.label}</span>
+                                   <span className="text-[10px] text-text-tertiary truncate">{type.description}</span>
+                                 </div>
                               </CommandItem>
                            ))}
                         </CommandGroup>
@@ -184,10 +211,13 @@ export function ActionStack({ interactionId, actions, animations, onUpdateStack 
                               <CommandItem 
                                  key={type.id} 
                                  onSelect={() => handleAddAction(type.id)}
-                                 className="flex items-center gap-2 px-2 py-2 cursor-pointer"
+                                 className="flex items-center gap-3 px-2 py-2.5 cursor-pointer"
                               >
-                                 <type.icon className="w-3.5 h-3.5 text-text-tertiary" />
-                                 <span className="text-xs font-medium">{type.label}</span>
+                                 <type.icon className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                                 <div className="flex flex-col min-w-0">
+                                   <span className="text-xs font-medium">{type.label}</span>
+                                   <span className="text-[10px] text-text-tertiary truncate">{type.description}</span>
+                                 </div>
                               </CommandItem>
                            ))}
                         </CommandGroup>

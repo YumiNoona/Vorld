@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   LayoutGrid as IconDashboard,
   Box as IconProjects,
@@ -30,27 +30,27 @@ const NAV_ITEMS = [
 /* ── Glass styles per theme ── */
 function useDockGlass(isDark: boolean) {
   const dockShell: React.CSSProperties = {
-    backdropFilter: "blur(30px) saturate(150%)",
-    WebkitBackdropFilter: "blur(30px) saturate(150%)",
+    backdropFilter: "blur(40px) saturate(180%) brightness(1.1)",
+    WebkitBackdropFilter: "blur(40px) saturate(180%) brightness(1.1)",
     background: isDark
-      ? "linear-gradient(to bottom, rgba(255,255,255,0.14), rgba(255,255,255,0.04))"
-      : "linear-gradient(to bottom, rgba(255,255,255,0.72), rgba(255,255,255,0.52))",
+      ? "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%), rgba(255,255,255,0.04)"
+      : "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.52) 100%), rgba(255,255,255,0.04)",
     border: isDark
       ? "1px solid rgba(255,255,255,0.18)"
       : "1px solid rgba(0,0,0,0.08)",
     boxShadow: isDark
-      ? "0 10px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(255,255,255,0.05)"
+      ? "0 10px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.12)"
       : "0 10px 40px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.03)",
     borderRadius: "28px",
     padding: "10px 14px",
   };
 
   const popover: React.CSSProperties = {
-    backdropFilter: "blur(30px) saturate(150%)",
-    WebkitBackdropFilter: "blur(30px) saturate(150%)",
+    backdropFilter: "blur(40px) saturate(180%) brightness(1.1)",
+    WebkitBackdropFilter: "blur(40px) saturate(180%) brightness(1.1)",
     background: isDark
-      ? "linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.04))"
-      : "linear-gradient(to bottom, rgba(255,255,255,0.82), rgba(255,255,255,0.62))",
+      ? "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)"
+      : "linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.62) 100%)",
     border: isDark
       ? "1px solid rgba(255,255,255,0.15)"
       : "1px solid rgba(0,0,0,0.08)",
@@ -64,8 +64,8 @@ function useDockGlass(isDark: boolean) {
     backdropFilter: "blur(20px) saturate(150%)",
     WebkitBackdropFilter: "blur(20px) saturate(150%)",
     background: isDark
-      ? "linear-gradient(to bottom, rgba(255,255,255,0.14), rgba(255,255,255,0.06))"
-      : "linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(255,255,255,0.7))",
+      ? "linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 100%)"
+      : "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.7) 100%)",
     border: isDark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.06)",
     boxShadow: isDark
       ? "0 4px 16px rgba(0,0,0,0.25), inset 0 0.5px 0 rgba(255,255,255,0.2)"
@@ -73,18 +73,10 @@ function useDockGlass(isDark: boolean) {
     borderRadius: "10px",
   };
 
-  const frostBloom = isDark
-    ? "radial-gradient(circle at 50% -20%, rgba(255,255,255,0.3), transparent 60%)"
-    : "radial-gradient(circle at 50% -20%, rgba(255,255,255,0.6), transparent 60%)";
-
-  const depthCompress = isDark
-    ? "linear-gradient(to top, rgba(0,0,0,0.2), transparent 60%)"
-    : "linear-gradient(to top, rgba(0,0,0,0.03), transparent 60%)";
-
-  return { dockShell, popover, tooltip, frostBloom, depthCompress };
+  return { dockShell, popover, tooltip };
 }
 
-/* ── Dock Item with proximity magnification ── */
+/* ── Dock Item with proximity magnification (motion-value driven, no React state) ── */
 function DockItem({
   href,
   icon: Icon,
@@ -105,77 +97,91 @@ function DockItem({
   const ref = useRef<HTMLAnchorElement>(null);
   const [hovered, setHovered] = useState(false);
   const baseSize = 44;
-  const [computedScale, setComputedScale] = useState(1);
-  const springScale = useSpring(1, { stiffness: 400, damping: 25 });
+
+  // Distance-based scale computed as a motion value — no React state updates
+  const distance = useMotionValue(0);
 
   useEffect(() => {
     const unsub = mouseX.on("change", (mx) => {
-      if (!ref.current || mx < 0) { springScale.set(1); return; }
+      if (!ref.current || mx < 0) {
+        distance.set(200); // far away = scale 1
+        return;
+      }
       const rect = ref.current.getBoundingClientRect();
       const center = rect.left + rect.width / 2;
-      const dist = Math.abs(mx - center);
-      springScale.set(Math.max(1, 1.35 - dist / 180));
+      distance.set(Math.abs(mx - center));
     });
     return unsub;
-  }, [mouseX, springScale]);
+  }, [mouseX, distance]);
 
-  useEffect(() => {
-    const unsub = springScale.on("change", (v) => setComputedScale(v));
-    return unsub;
-  }, [springScale]);
+  // Transform distance → raw scale (no React re-renders)
+  const rawScale = useTransform(distance, [0, 180], [1.35, 1], { clamp: true });
+
+  // Soft liquid spring
+  const springScale = useSpring(rawScale, { stiffness: 200, damping: 20, mass: 0.5 });
+
+  // Derive translateY from springScale for the "float up" effect
+  const translateY = useTransform(springScale, (s: number) => (s - 1) * -8);
 
   return (
-    <Link
-      ref={ref}
-      href={href}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={cn(
-        "relative group flex items-center justify-center rounded-[14px] transition-[background,box-shadow] duration-200 origin-bottom",
-        isActive && isDark && "bg-white/[0.12] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.2)]",
-        isActive && !isDark && "bg-black/[0.06] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.5)]",
-        !isActive && isDark && "hover:bg-white/[0.06]",
-        !isActive && !isDark && "hover:bg-black/[0.04]",
-      )}
+    <motion.div
       style={{
+        scale: springScale,
+        y: translateY,
+        willChange: "transform",
         width: baseSize,
         height: baseSize,
-        transform: `scale(${computedScale}) translateY(${(computedScale - 1) * -8}px)`,
-        transition: "background 0.2s, box-shadow 0.2s",
-        filter: hovered ? "brightness(1.12)" : "brightness(1)",
       }}
+      className="origin-bottom"
     >
-      <Icon
+      <Link
+        ref={ref}
+        href={href}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         className={cn(
-          "transition-colors duration-150",
-          isActive && isDark && "text-white",
-          isActive && !isDark && "text-slate-900",
-          !isActive && isDark && "text-white/50 group-hover:text-white/85",
-          !isActive && !isDark && "text-slate-400 group-hover:text-slate-700",
+          "relative group flex items-center justify-center w-full h-full rounded-[14px] transition-[background,box-shadow] duration-200",
+          isActive && isDark && "bg-white/[0.12] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.2)]",
+          isActive && !isDark && "bg-black/[0.06] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.5)]",
+          !isActive && isDark && "hover:bg-white/[0.06]",
+          !isActive && !isDark && "hover:bg-black/[0.04]",
         )}
-        style={{ width: 18, height: 18 }}
-        strokeWidth={isActive ? 2 : 1.5}
-      />
-
-      {/* Tooltip */}
-      <div
-        className={cn(
-          "absolute bottom-full mb-3 px-2.5 py-1 text-[11px] font-medium opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-y-1 group-hover:translate-y-0 whitespace-nowrap",
-          isDark ? "text-white/90" : "text-slate-800",
-        )}
-        style={tooltipStyle}
+        style={{
+          filter: hovered ? "brightness(1.12)" : "brightness(1)",
+        }}
       >
-        {label}
-      </div>
-
-      {isActive && (
-        <motion.div
-          layoutId="dock-indicator"
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent"
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        <Icon
+          className={cn(
+            "transition-colors duration-150",
+            isActive && isDark && "text-white",
+            isActive && !isDark && "text-slate-900",
+            !isActive && isDark && "text-white/50 group-hover:text-white/85",
+            !isActive && !isDark && "text-slate-400 group-hover:text-slate-700",
+          )}
+          style={{ width: 18, height: 18 }}
+          strokeWidth={isActive ? 2 : 1.5}
         />
-      )}
-    </Link>
+
+        {/* Tooltip */}
+        <div
+          className={cn(
+            "absolute bottom-full mb-3 px-2.5 py-1 text-[11px] font-medium opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-y-1 group-hover:translate-y-0 whitespace-nowrap",
+            isDark ? "text-white/90" : "text-slate-800",
+          )}
+          style={tooltipStyle}
+        >
+          {label}
+        </div>
+
+        {isActive && (
+          <motion.div
+            layoutId="dock-indicator"
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent"
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          />
+        )}
+      </Link>
+    </motion.div>
   );
 }
 
@@ -242,8 +248,6 @@ export function AppDock() {
             style={glass.popover}
             className="mb-3 p-1.5 min-w-[220px] relative overflow-hidden"
           >
-            <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: "inherit", background: glass.frostBloom }} />
-
             <div className="relative px-3 py-2.5 flex items-center gap-3">
               <div className={cn("w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-1", isDark ? "bg-white/10 ring-white/10 text-white/60" : "bg-black/5 ring-black/5 text-slate-500")}>
                 {profile?.avatar_url ? (
@@ -287,10 +291,9 @@ export function AppDock() {
         onMouseMove={(e) => mouseX.set(e.clientX)}
         onMouseLeave={() => mouseX.set(-1)}
       >
-        <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: "inherit", background: glass.frostBloom }} />
-        <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: "inherit", background: glass.depthCompress }} />
+        {/* No separate frostBloom / depthCompress divs — consolidated into dockShell background + box-shadow */}
 
-        {NAV_ITEMS.map((item, i) => (
+        {NAV_ITEMS.map((item) => (
           <DockItem key={item.label} href={item.href} icon={item.icon} label={item.label} isActive={pathname === item.href} mouseX={mouseX} isDark={isDark} tooltipStyle={glass.tooltip} />
         ))}
 

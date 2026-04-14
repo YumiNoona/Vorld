@@ -112,9 +112,20 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-bg-primary to-bg-secondary">
-             <div className="w-16 h-16 rounded-2xl bg-accent/5 border border-accent/10 flex items-center justify-center text-accent/20 group-hover:text-accent/60 transition-all duration-500">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition-transform duration-500 text-accent">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-bg-primary to-bg-secondary relative overflow-hidden">
+             {/* Studio grid pattern */}
+             <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+               <defs>
+                 <pattern id={`grid-${project.id}`} width="24" height="24" patternUnits="userSpaceOnUse">
+                   <path d="M 24 0 L 0 0 0 24" fill="none" stroke="currentColor" strokeWidth="1"/>
+                 </pattern>
+               </defs>
+               <rect width="100%" height="100%" fill={`url(#grid-${project.id})`} className="text-text-primary" />
+             </svg>
+             {/* Perspective fade */}
+             <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-transparent to-transparent opacity-60" />
+             <div className="relative z-10 w-12 h-12 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-accent/30 group-hover:text-accent/60 group-hover:scale-110 transition-all duration-500">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition-transform duration-500 text-accent">
                    <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                    <circle cx="12" cy="12" r="3" fill="currentColor" />
                 </svg>
