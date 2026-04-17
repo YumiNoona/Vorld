@@ -153,32 +153,36 @@ export default function SettingsPage() {
     );
   }
 
-  const avatarPublicUrl = profile.avatar_url 
-    ? supabase.storage.from('avatars').getPublicUrl(profile.avatar_url).data.publicUrl 
-    : null;
+  const getAvatarUrl = () => {
+    if (!profile.avatar_url) return null;
+    if (profile.avatar_url.startsWith('http')) return profile.avatar_url;
+    return supabase.storage.from('avatars').getPublicUrl(profile.avatar_url).data.publicUrl;
+  };
+
+  const avatarPublicUrl = getAvatarUrl();
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-10">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary tracking-tight mb-2 uppercase">Settings</h1>
-        <p className="text-sm text-text-secondary">Manage your account preferences and security.</p>
+        <h1 className="font-bold text-[--text-1] tracking-tighter mb-2" style={{ fontSize: 'var(--text-heading-1)' }}>Settings</h1>
+        <p className="text-[13px] font-medium text-[--text-3]">Manage your account preferences and security.</p>
       </div>
 
       {/* Profile Section */}
       <section className="space-y-6">
-        <h2 className="text-lg font-medium text-text-primary flex items-center gap-2">
-          <User className="w-4 h-4 text-accent" />
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.25em] text-[--text-3] flex items-center gap-2">
+          <User className="w-3.5 h-3.5 text-accent" />
           Profile
         </h2>
         
-        <div className="p-8 rounded-2xl bg-background-subtle border border-border-primary space-y-8">
-           <div className="flex items-center gap-6">
+        <div className="p-10 rounded-[32px] bg-[--surface-low] border border-[--border] space-y-10 shadow-sm">
+           <div className="flex items-center gap-8">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                 <div className="w-20 h-20 rounded-full bg-background-elevated border-2 border-border-primary flex items-center justify-center overflow-hidden">
+                 <div className="w-24 h-24 rounded-full bg-[--surface-low] flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-105">
                     {avatarPublicUrl ? (
                       <img src={avatarPublicUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-10 h-10 text-text-tertiary" />
+                      <User className="w-10 h-10 text-[--text-3] opacity-30" />
                     )}
                  </div>
                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
@@ -193,18 +197,18 @@ export default function SettingsPage() {
                  />
               </div>
               <div>
-                 <h3 className="text-text-primary font-medium">Profile Picture</h3>
-                 <p className="text-xs text-text-tertiary mt-1 uppercase tracking-tight font-bold">JPG, GIF or PNG. Max size of 2MB.</p>
-                 <div className="flex items-center gap-2 mt-3">
+                 <h3 className="text-sm font-bold text-[--text-1] tracking-tight uppercase">Profile Picture</h3>
+                 <p className="text-[10px] text-[--text-3] mt-1 uppercase tracking-widest font-bold opacity-50">JPG, GIF or PNG. Max size of 2MB.</p>
+                 <div className="flex items-center gap-2 mt-4">
                     <button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-xs font-bold uppercase tracking-tight text-accent hover:text-accent-hover transition-colors"
+                      className="text-[10px] font-bold uppercase tracking-widest text-accent hover:text-[--text-1] transition-all"
                     >
                       Upload new
                     </button>
-                    <span className="text-text-tertiary">•</span>
+                    <span className="text-[--text-3] opacity-20">•</span>
                     <button 
-                      className="text-xs font-bold uppercase tracking-tight text-text-tertiary hover:text-destructive transition-colors"
+                      className="text-[10px] font-bold uppercase tracking-widest text-[--text-3] hover:text-red-500 transition-all"
                       onClick={async () => {
                          const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
                          if (!error) setProfile(prev => ({ ...prev, avatar_url: "" }));
@@ -217,59 +221,57 @@ export default function SettingsPage() {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                 <label className="text-xs font-bold text-text-tertiary uppercase tracking-widest">Full Name</label>
-                 <input 
-                   type="text" 
-                   value={profile.full_name}
-                   onChange={e => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
-                   className="w-full h-10 px-4 rounded-lg bg-background border border-border-primary focus:border-accent outline-none transition-all text-sm text-text-primary"
-                 />
-              </div>
-              <div className="space-y-2">
-                 <label className="text-xs font-bold text-text-tertiary uppercase tracking-widest">Email Address</label>
-                 <input 
-                   type="email" 
-                   value={email}
-                   onChange={e => setEmail(e.target.value)}
-                   className="w-full h-10 px-4 rounded-lg bg-background border border-border-primary focus:border-accent outline-none transition-all text-sm text-text-primary"
-                 />
-              </div>
+               <div className="space-y-4">
+                  <label className="text-[10px] font-bold text-[--text-3] uppercase tracking-[0.2em] opacity-60">Full Name</label>
+                  <input 
+                    type="text" 
+                    value={profile.full_name}
+                    onChange={e => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
+                    className="w-full h-12 px-5 rounded-[12px] bg-[--bg]/50 border border-[--border] focus:bg-[--surface-low] outline-none transition-all text-sm text-[--text-1] placeholder:text-[--text-3]"
+                  />
+               </div>
+               <div className="space-y-4">
+                  <label className="text-[10px] font-bold text-[--text-3] uppercase tracking-[0.2em] opacity-60">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full h-12 px-5 rounded-[12px] bg-[--bg]/50 border border-[--border] focus:bg-[--surface-low] outline-none transition-all text-sm text-[--text-1] placeholder:text-[--text-3]"
+                  />
+               </div>
            </div>
         </div>
       </section>
 
       {/* Security Section */}
       <section className="space-y-6">
-        <h2 className="text-lg font-medium text-text-primary flex items-center gap-2">
-          <Shield className="w-4 h-4 text-accent" />
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.25em] text-[--text-3] flex items-center gap-2">
+          <Shield className="w-3.5 h-3.5 text-accent" />
           Security
         </h2>
         
-        <div className="p-8 rounded-2xl bg-background-subtle border border-border-primary space-y-6">
-           <div className="space-y-4">
-              <div className="space-y-2">
-                 <label className="text-xs font-bold text-text-tertiary uppercase tracking-widest">New Password</label>
-                 <div className="relative">
-                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                   <input 
-                     type="password" 
-                     placeholder="Leave blank to keep current"
-                     value={newPassword}
-                     onChange={e => setNewPassword(e.target.value)}
-                     className="w-full h-10 pl-10 pr-4 rounded-lg bg-background border border-border-primary focus:border-accent outline-none transition-all text-sm text-text-primary"
-                   />
-                 </div>
+        <div className="p-10 rounded-[32px] bg-[--surface-low] border border-[--border] space-y-6 shadow-sm">
+           <div className="max-w-md space-y-3">
+              <label className="text-[10px] font-bold text-[--text-3] uppercase tracking-[0.2em] opacity-60">New Password</label>
+              <div className="relative">
+                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[--text-3] opacity-30" />
+                  <input 
+                    type="password" 
+                    placeholder="Leave blank to keep current"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full h-12 pl-12 pr-4 rounded-[12px] bg-[--bg]/50 border border-[--border] focus:bg-[--surface-low] outline-none transition-all text-sm text-[--text-1] placeholder:text-[--text-3]"
+                  />
               </div>
            </div>
         </div>
       </section>
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-6 border-t border-border-primary">
+      <div className="flex items-center justify-between pt-10">
          <button 
            onClick={handleSignOut}
-           className="flex items-center gap-2 text-xs font-bold uppercase tracking-tight text-destructive hover:bg-destructive-subtle/20 px-4 py-2 rounded-lg transition-all"
+           className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[--text-3] hover:text-red-500 hover:bg-[--surface-subtle] px-6 py-3 rounded-full transition-all active:scale-95"
          >
             <LogOut className="w-4 h-4" />
             Sign out
@@ -277,7 +279,7 @@ export default function SettingsPage() {
          <button 
            onClick={handleSave}
            disabled={saving}
-           className="h-10 px-6 bg-accent hover:bg-accent-hover text-white text-sm font-bold uppercase tracking-tight rounded-lg shadow-lg active:scale-95 transition-all flex items-center gap-2"
+           className="h-14 px-10 bg-[--text-1] text-[--bg] text-[11px] font-bold uppercase tracking-[0.2em] rounded-full shadow-3xl hover:opacity-90 active:scale-95 transition-all flex items-center gap-3"
          >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save changes

@@ -73,7 +73,7 @@ export function ThumbnailUploadModal({
       if (!user) throw new Error("Not authenticated");
 
       const fileExt = file.name.split('.').pop();
-      const filePath = `thumbnails/${projectId}_${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${projectId}_${Date.now()}.${fileExt}`;
 
       // 1. Upload to storage
       const { error: uploadError } = await supabase.storage
@@ -91,7 +91,8 @@ export function ThumbnailUploadModal({
       const { error: dbError } = await supabase
         .from('projects')
         .update({ thumbnail_url: publicUrl })
-        .eq('id', projectId);
+        .eq('id', projectId)
+        .eq('user_id', user.id);
 
       if (dbError) throw dbError;
 
@@ -111,7 +112,7 @@ export function ThumbnailUploadModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden bg-[--bg]/60 backdrop-blur-[20px] saturate-[140%] border-[--border] sm:rounded-2xl shadow-2xl">
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-[--bg] border border-[--border] sm:rounded-2xl shadow-3xl">
         <div className="p-8 space-y-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[--text-1] tracking-tight">Project Thumbnail</DialogTitle>
@@ -127,7 +128,7 @@ export function ThumbnailUploadModal({
               "group relative aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all duration-300 overflow-hidden",
               file 
                 ? "border-[--accent]/30 bg-[--accent-subtle]" 
-                : "border-[--border] hover:border-[--accent]/40 hover:bg-white/5 bg-black/20"
+                : "border-[--border] hover:border-[--accent]/40 hover:bg-[--surface-low] bg-[--surface-subtle]"
             )}
           >
             {preview ? (
@@ -144,7 +145,7 @@ export function ThumbnailUploadModal({
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-[--text-3] group-hover:text-[--accent] group-hover:scale-110 transition-all duration-300">
+                <div className="w-12 h-12 rounded-full bg-[--surface-low] flex items-center justify-center text-[--text-3] group-hover:text-[--accent] group-hover:scale-110 transition-all duration-300">
                    <Upload className="w-6 h-6" />
                 </div>
                 <div className="text-center">
@@ -173,9 +174,9 @@ export function ThumbnailUploadModal({
               Cancel
             </button>
             <button
-              disabled={isUploading || !file}
-              onClick={handleUpload}
-              className="h-10 px-6 bg-[--accent] hover:brightness-110 disabled:opacity-50 text-[--accent-fg] text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-2"
+               disabled={isUploading || !file}
+               onClick={handleUpload}
+               className="h-10 px-8 bg-[--text-1] hover:opacity-90 disabled:opacity-50 text-[--bg] text-[11px] font-bold uppercase tracking-widest rounded-full transition-all shadow-2xl active:scale-95 flex items-center gap-2"
             >
               {isUploading ? (
                 <>

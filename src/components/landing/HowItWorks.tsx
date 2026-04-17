@@ -53,16 +53,16 @@ export function HowItWorks() {
                 whileInView={{ opacity: 1, scale: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="group relative flex flex-col items-center p-8 rounded-2xl bg-[--surface] border border-[--border] hover:border-[--border-strong] transition-all duration-300"
+                className="group relative flex flex-col items-center p-10 rounded-[2rem] bg-[--surface]/40 backdrop-blur-xl border border-white/5 shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:bg-[--surface]/60 ring-1 ring-white/5"
               >
                 {/* Number Badge */}
-                <div className="absolute top-4 right-4 text-xs font-mono font-bold text-[--text-3]/20 group-hover:text-[--accent]/20 transition-colors duration-300">
+                <div className="absolute top-6 right-6 text-xs font-mono font-bold text-[--text-3]/10 group-hover:text-[--accent]/30 transition-colors duration-500">
                   {step.number}
                 </div>
 
                 {/* Icon Container */}
-                <div className="w-12 h-12 rounded-xl bg-[--accent-subtle] border border-[--accent-border] flex items-center justify-center mb-6 text-[--accent] group-hover:scale-110 transition-transform duration-300">
-                  <step.icon className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-[--accent-subtle] border border-[--accent-border] flex items-center justify-center mb-8 text-[--accent] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                  <step.icon className="w-7 h-7" />
                 </div>
 
                 {/* Content */}

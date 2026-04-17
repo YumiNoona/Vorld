@@ -40,7 +40,7 @@ export function InteractionPanel({ width, isCollapsed }: { width?: number, isCol
       <aside 
         style={panelStyle}
         className={cn(
-          "border-l border-[--border] bg-[--bg] shrink-0 flex flex-col items-center justify-center p-10 text-center bg-[--bg]/50 editor-panel-transition",
+          "bg-[--bg] shrink-0 flex flex-col items-center justify-center p-10 text-center editor-panel-transition",
           isCollapsed ? "overflow-hidden border-none" : ""
         )}
       >
@@ -74,11 +74,11 @@ export function InteractionPanel({ width, isCollapsed }: { width?: number, isCol
     <aside 
       style={panelStyle}
       className={cn(
-        "border-l border-[--border] bg-[--surface] shrink-0 flex flex-col z-10 editor-panel-transition group/panel",
+        "bg-[--bg] shrink-0 flex flex-col z-10 editor-panel-transition group/panel",
         isCollapsed ? "overflow-hidden border-none opacity-0 pointer-events-none" : "opacity-100"
       )}
     >
-      <div className="h-12 border-b border-[--border] px-4 flex items-center justify-between shrink-0 bg-[--bg]/20">
+      <div className="h-12 px-4 flex items-center justify-between shrink-0 bg-[--surface-low]">
         <div className="flex items-center gap-2 truncate">
            <span className="text-xs font-bold text-[--accent] uppercase tracking-widest truncate max-w-[300px]">{headerText}</span>
         </div>
@@ -124,7 +124,7 @@ export function InteractionPanel({ width, isCollapsed }: { width?: number, isCol
         )}
       </div>
 
-      <div className="p-4 bg-bg-secondary/30 border-t border-border-default">
+      <div className="p-4 bg-[--surface-low]">
          <button 
            onClick={() => setPreviewMode(!previewMode)}
            className={cn(

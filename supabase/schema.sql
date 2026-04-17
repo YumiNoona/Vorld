@@ -159,109 +159,59 @@ on conflict do nothing;
 -- ============================================
 
 -- =========================
--- AVATARS (NO PUBLIC LISTING)
+-- AVATARS
 -- =========================
 
-create policy "avatars_select"
+create policy "avatars_all"
+on storage.objects for all
+using (bucket_id = 'avatars' AND auth.uid() = owner)
+with check (bucket_id = 'avatars' AND auth.uid() = owner);
+
+create policy "avatars_public_select"
+on storage.objects for select
+using (bucket_id = 'avatars');
+
+-- =========================
+-- MODELS
+-- =========================
+
+create policy "models_all"
+on storage.objects for all
+using (bucket_id = 'models' AND auth.uid() = owner)
+with check (bucket_id = 'models' AND auth.uid() = owner);
+
+create policy "models_public_select"
 on storage.objects for select
 using (
-bucket_id = 'avatars'
-AND (
-(storage.foldername(name))[1] = auth.uid()::text
-)
-);
-
-create policy "avatars_insert"
-on storage.objects for insert
-with check (
-bucket_id = 'avatars'
-AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "avatars_update"
-on storage.objects for update
-using (
-bucket_id = 'avatars'
-AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "avatars_delete"
-on storage.objects for delete
-using (
-bucket_id = 'avatars'
-AND (storage.foldername(name))[1] = auth.uid()::text
+  bucket_id = 'models' 
+  AND exists (
+    select 1 from public.projects 
+    where (model_path = name OR model_path LIKE '%' || name)
+    AND is_public = true
+  )
 );
 
 -- =========================
--- MODELS (PRIVATE + PUBLIC VIA PROJECT)
+-- THUMBNAILS
 -- =========================
 
-create policy "models_select_owner"
+create policy "thumbnails_all"
+on storage.objects for all
+using (bucket_id = 'thumbnails' AND auth.uid() = owner)
+with check (bucket_id = 'thumbnails' AND auth.uid() = owner);
+
+create policy "thumbnails_public_select"
 on storage.objects for select
 using (
-bucket_id = 'models'
-AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "models_select_public"
-on storage.objects for select
-using (
-bucket_id = 'models'
-AND exists (
-select 1 from public.projects
-where model_path = name
-AND is_public = true
-)
-);
-
-create policy "models_insert"
-on storage.objects for insert
-with check (
-bucket_id = 'models'
-AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "models_delete"
-on storage.objects for delete
-using (
-bucket_id = 'models'
-AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
--- =========================
--- THUMBNAILS (PUBLIC VIA PROJECT ONLY)
--- =========================
-
-create policy "thumbnails_select"
-on storage.objects for select
-using (
-bucket_id = 'thumbnails'
-AND exists (
-select 1 from public.projects
-where thumbnail_url = name
-AND (is_public = true OR user_id = auth.uid())
-)
-);
-
-create policy "thumbnails_insert"
-on storage.objects for insert
-with check (
-bucket_id = 'thumbnails'
-AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "thumbnails_update"
-on storage.objects for update
-using (
-bucket_id = 'thumbnails'
-AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "thumbnails_delete"
-on storage.objects for delete
-using (
-bucket_id = 'thumbnails'
-AND (storage.foldername(name))[1] = auth.uid()::text
+  bucket_id = 'thumbnails'
+  AND (
+    exists (
+      select 1 from public.projects
+      where (thumbnail_url = name OR thumbnail_url LIKE '%' || name)
+      AND (is_public = true OR user_id = auth.uid())
+    )
+    OR auth.uid() = owner
+  )
 );
 
 -- ============================================

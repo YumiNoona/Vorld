@@ -1,166 +1,201 @@
 "use client";
 
-import React, { Suspense, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, MeshDistortMaterial, Sphere, PerspectiveCamera } from "@react-three/drei";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Play } from "lucide-react";
+import React, { Suspense, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { 
+  Float, 
+  Sphere, 
+  PerspectiveCamera, 
+  Environment,
+  Text,
+  Html
+} from "@react-three/drei";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X, ArrowRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import * as THREE from "three";
+import { cn } from "@/lib/utils";
 
 /**
- * Animated Gradient Underline SVG
+ * 🔮 The Centerpiece: Refractive Glass Orb
+ * Implements high-fidelity transmission and internal lighting
  */
-const AnimatedUnderline = () => (
-  <svg 
-    className="absolute -bottom-1 left-0 w-full h-3 overflow-visible pointer-events-none"
-    viewBox="0 0 400 12"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <motion.path
-      d="M2 10C60 6 140 2 200 4C260 6 340 10 398 8"
-      stroke="var(--accent)"
-      strokeWidth="3"
-      strokeLinecap="round"
-      initial={{ pathLength: 0, opacity: 0 }}
-      animate={{ pathLength: 1, opacity: 1 }}
-      transition={{ 
-        duration: 0.8, 
-        delay: 0.6, 
-        ease: [0.16, 1, 0.3, 1] 
-      }}
-    />
-  </svg>
-);
-
-/**
- * Ambient 3D Orb Component
- */
-function AmbientOrb() {
+function RefractiveOrb() {
   const meshRef = useRef<THREE.Mesh>(null!);
   
   useFrame((state) => {
     const time = state.clock.getElapsedTime();
-    meshRef.current.rotation.x = Math.sin(time / 4) / 4;
-    meshRef.current.rotation.y = time / 8;
+    meshRef.current.rotation.y += 0.003;
+    // Subtle float
+    meshRef.current.position.y = Math.sin(time * 0.5) * 0.1;
   });
 
   return (
-    <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-      <Sphere ref={meshRef} args={[1, 64, 64]} scale={2.4}>
-        <MeshDistortMaterial
-          color="#F59E0B"
-          speed={3}
-          distort={0.4}
-          radius={1}
-          metalness={0.6}
-          roughness={0.2}
-          emissive="#F59E0B"
-          emissiveIntensity={0.2}
+    <group>
+      <Sphere ref={meshRef} args={[1, 128, 128]} scale={1.8}>
+        <meshPhysicalMaterial
+          roughness={0.05}
+          metalness={0.1}
+          transmission={0.9}
+          thickness={1.5}
+          color="#ffffff"
+          ior={1.5}
+          reflectivity={0.5}
+          iridescence={0.3}
+          iridescenceIOR={1.3}
+          sheen={1}
+          sheenColor="#3B82F6"
+          envMapIntensity={3}
+          clearcoat={1}
+          clearcoatRoughness={0.1}
         />
+        {/* Point light inside the sphere */}
+        <pointLight color="#3B82F6" intensity={8} distance={3} decay={2} />
       </Sphere>
-    </Float>
+
+      {/* Outer Glow / Rim Effect */}
+      <pointLight position={[-5, 5, 5]} color="#ffffff" intensity={2} />
+    </group>
+  );
+}
+
+/**
+ * 🏟️ Scenic Ground Platform
+ */
+function Platform() {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]}>
+      <circleGeometry args={[4, 64]} />
+      <meshStandardMaterial 
+        color="#111111" 
+        transparent 
+        opacity={0.8}
+      />
+    </mesh>
   );
 }
 
 export function Hero() {
-  const { scrollY } = useScroll();
-  const yTranslate = useTransform(scrollY, [0, 500], [0, 200]);
-  const opacity = useTransform(scrollY, [0, 300], [0.12, 0]);
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   return (
-    <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden py-24 sm:py-32">
-      {/* Background Effects: Soft Emerald Glow at Top */}
-      <motion.div 
-        style={{ opacity }}
-        className="absolute top-0 inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(245,158,11,0.08),transparent)]"
-      />
+    <section className="relative h-screen w-full bg-[#080808] overflow-hidden flex flex-col items-center justify-center">
       
-      {/* 3D Orb Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-30 blur-[40px]">
-        <Canvas>
-          <PerspectiveCamera makeDefault position={[0, 0, 5]} />
-          <ambientLight intensity={1} />
-          <pointLight position={[10, 10, 10]} intensity={1.5} />
+      {/* --- Minimalist Navigation Overlay --- */}
+      <div className="fixed top-12 right-12 z-[100]">
+        <button 
+          onClick={() => setIsNavOpen(!isNavOpen)}
+          className="p-3 rounded-full hover:bg-white/5 text-white/50 hover:text-white transition-all duration-300"
+        >
+          {isNavOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {isNavOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] bg-[#080808]/95 backdrop-blur-2xl flex flex-col items-center justify-center space-y-8"
+          >
+            {["Docs", "How it Works", "Contact", "About"].map((item, i) => (
+              <motion.div
+                key={item}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Link 
+                  href={`/${item.toLowerCase().replace(/ /g, '-')}`}
+                  onClick={() => setIsNavOpen(false)}
+                  className="text-4xl md:text-6xl font-bold text-white/40 hover:text-white transition-colors duration-300 tracking-tighter"
+                >
+                  {item}
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- Cinematic Branding (BEHIND THE ORB) --- */}
+      <div className="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none">
+        <motion.span 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 0.5, y: 0 }}
+          transition={{ duration: 1, delay: 0.2 }}
+          className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/50 mb-12"
+        >
+          Professional 3D Engine
+        </motion.span>
+        
+        <motion.h1 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="text-white text-center whitespace-nowrap leading-none select-none px-4"
+          style={{ fontSize: "var(--text-display)" }}
+        >
+          SHAPE THE <br /> VIRTUAL WORLD
+        </motion.h1>
+      </div>
+
+      {/* --- The Glass Orb Stage --- */}
+      <div className="absolute inset-0 z-10">
+        <Canvas gl={{ antialias: true, alpha: true }}>
+          <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={45} />
+          <Environment preset="city" />
+          
           <Suspense fallback={null}>
-            <AmbientOrb />
+             <RefractiveOrb />
+             <Platform />
           </Suspense>
+
+          {/* Depth Ground Shadow */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.1, 0]} receiveShadow>
+            <planeGeometry args={[20, 20]} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.4} />
+          </mesh>
         </Canvas>
       </div>
 
-      <div className="relative z-10 container max-w-5xl px-4 mx-auto text-center">
-        {/* Intro Label */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[--accent-subtle] border border-[--accent-border] mb-8 cursor-default"
-        >
-          <span className="text-xs font-medium text-[--accent] tracking-wide">
-            Introducing Vorld 2.0
-          </span>
-          <ArrowRight className="w-3 h-3 text-[--accent]" />
-        </motion.div>
+      {/* --- Centerpiece Grounding Disk (CSS Version for shadow) --- */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-0 pointer-events-none"
+        style={{ 
+          width: "55vmin", 
+          height: "55vmin", 
+          background: "#111111",
+          boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
+          opacity: 0.5
+        }}
+      />
 
-        {/* H1 Heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-          className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.04em] text-[--text-1] leading-[1.1] mb-8"
+      {/* --- CTA Layer (ABOVE THE ORB) --- */}
+      <div className="absolute bottom-24 left-0 right-0 z-20 flex items-center justify-center gap-6">
+        <Link
+          href="/signup"
+          className="px-8 py-3.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-md text-[11px] font-bold text-white/70 hover:text-white hover:border-white/50 transition-all duration-300 uppercase tracking-[0.2em] group flex items-center gap-2"
         >
-          Turn 3D models into <br />
-          <span className="relative">
-            interactive
-            <AnimatedUnderline />
-          </span> experiences
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-          className="text-lg sm:text-xl text-[--text-2] max-w-2xl mx-auto leading-relaxed mb-12"
+          Start for Free
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+        </Link>
+        <Link
+          href="/login"
+          className="px-8 py-3.5 rounded-full border border-white/10 hover:border-white/20 transition-all duration-300 text-[11px] font-bold text-white/40 hover:text-white uppercase tracking-[0.2em]"
         >
-          Experience the new standard in 3D web development. Vorld gives you the power to create, 
-          host, and share interactive 3D experiences in minutes.
-        </motion.p>
-
-        {/* CTA Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
-        >
-          <Link
-            href="/signup"
-            className="group w-full sm:w-auto h-12 px-8 flex items-center justify-center gap-2 bg-[--accent] hover:brightness-110 text-[--accent-fg] font-medium rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.97]"
-          >
-            Get started free
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
-          </Link>
-          <button className="w-full sm:w-auto h-12 px-8 flex items-center justify-center gap-2 bg-[--surface] hover:bg-[--surface-raised] text-[--text-1] font-medium rounded-lg transition-all duration-200 border border-[--border-strong] hover:border-[--text-3]">
-            <Play className="w-4 h-4 fill-current" />
-            Watch demo
-          </button>
-        </motion.div>
-
-        {/* Social Proof */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-20 text-xs font-medium text-[--text-3] uppercase tracking-widest"
-        >
-          Trusted by 2,400+ designers, architects, and developers
-        </motion.p>
+          Log in
+        </Link>
       </div>
 
-      {/* Hero Bottom Mask: Deep, smooth blend into the next section */}
-      <div className="absolute -bottom-1 inset-x-0 h-64 bg-gradient-to-t from-[--bg] via-[--bg]/50 to-transparent pointer-events-none z-20" />
+      {/* --- Footer Branding --- */}
+      <div className="absolute bottom-12 right-12 opacity-25 pointer-events-none select-none">
+        <span className="text-[11px] font-medium tracking-widest text-white uppercase italic">
+          Vorld &copy; 2026 / Next-Gen 3D
+        </span>
+      </div>
+
     </section>
   );
 }

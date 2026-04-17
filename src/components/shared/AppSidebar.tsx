@@ -82,26 +82,24 @@ export function AppSidebar() {
       initial={false}
       animate={{ width: isCollapsed ? 64 : 240 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="relative flex flex-col h-screen bg-[--bg] border-r border-[--border] z-40"
+      className="relative flex flex-col h-screen bg-[--bg] z-40"
     >
       {/* Header / Logo */}
       <div className={cn(
-        "h-14 flex items-center border-b border-[--border] px-4 shrink-0",
+        "h-16 flex items-center px-4 shrink-0",
         isCollapsed ? "justify-center" : "justify-between"
       )}>
         {!isCollapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 group">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[--accent]">
-              <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="12" cy="12" r="3" fill="currentColor" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[--text-1]">
+               <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="text-xl font-bold tracking-tight text-[--text-1] group-hover:text-[--accent] transition-colors">Vorld</span>
+            <span className="text-xl font-bold tracking-tighter text-[--text-1] transition-opacity group-hover:opacity-70">Vorld</span>
           </Link>
         )}
         {isCollapsed && (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[--accent]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[--text-1]">
             <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="12" cy="12" r="3" fill="currentColor" />
           </svg>
         )}
         
@@ -117,25 +115,25 @@ export function AppSidebar() {
       </div>
 
       {/* User Info */}
-      {!isCollapsed && (
-         <div className="p-4 flex items-center gap-3 border-b border-[--border]">
-          <div className="w-8 h-8 rounded-full bg-[--surface-raised] flex items-center justify-center text-[--accent] ring-1 ring-[--border] overflow-hidden shadow-sm">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <User className="w-4 h-4" />
-            )}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium text-[--text-1] truncate">
-              {profile?.full_name || "New User"}
-            </span>
-            <span className="text-[10px] uppercase font-bold text-[--accent] tracking-widest truncate">
-              {profile?.email?.split('@')[0] || "User"}
-            </span>
-          </div>
-        </div>
-      )}
+        {!isCollapsed && (
+          <div className="p-6 flex items-center gap-3">
+           <div className="w-8 h-8 rounded-full bg-[--surface-subtle] flex items-center justify-center text-[--text-3] ring-1 ring-[--surface-low] overflow-hidden shadow-sm">
+             {avatarUrl ? (
+               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+             ) : (
+               <User className="w-4 h-4" />
+             )}
+           </div>
+           <div className="flex flex-col min-w-0">
+             <span className="text-[13px] font-bold text-[--text-1] tracking-tight truncate">
+               {profile?.full_name || "New User"}
+             </span>
+             <span className="text-[10px] uppercase font-bold text-[--text-3] tracking-[0.2em] truncate">
+               {profile?.email?.split('@')[0] || "User"}
+             </span>
+           </div>
+         </div>
+       )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-none">
@@ -146,25 +144,25 @@ export function AppSidebar() {
               key={item.label}
               href={item.href}
               className={cn(
-                "group flex items-center gap-3 h-9 rounded-md text-sm font-medium transition-all duration-150 relative",
+                "group flex items-center gap-3 h-10 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-200 relative",
                 isCollapsed ? "justify-center" : "px-3",
                 isActive 
-                  ? "bg-[--accent-subtle] text-[--accent]" 
-                  : "text-[--text-2] hover:bg-[--surface-raised] hover:text-[--text-1]"
+                  ? "bg-[--surface-low] text-[--text-1]" 
+                  : "text-[--text-3] hover:bg-[--surface-subtle] hover:text-[--text-2]"
               )}
             >
-              <item.icon className={cn("w-4 h-4 shrink-0 transition-transform", !isCollapsed && isActive && "scale-110")} />
+              <item.icon className={cn("w-4 h-4 shrink-0 transition-opacity", isActive ? "opacity-100" : "opacity-40 group-hover:opacity-70")} />
               {!isCollapsed && (
                 <span className="truncate">{item.label}</span>
               )}
               {isActive && !isCollapsed && (
                 <motion.div
                   layoutId="sidebar-active"
-                  className="absolute left-0 w-0.5 h-4 bg-[--accent] rounded-full"
+                  className="absolute left-0 w-0.5 h-4 bg-white/20 rounded-full"
                 />
               )}
               {isCollapsed && (
-                <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-[--surface-raised] border border-[--border] rounded-lg text-[11px] font-bold text-[--text-1] uppercase tracking-wider opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-x-1 group-hover:translate-x-0 shadow-2xl z-50">
+                <div className="absolute left-full ml-3 px-3 py-2 bg-[--surface] rounded-[10px] text-[10px] font-bold text-[--text-1] uppercase tracking-[0.15em] opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-1 group-hover:translate-x-0 shadow-[0_16px_48px_rgba(0,0,0,0.5)] z-50 whitespace-nowrap">
                   {item.label}
                 </div>
               )}
@@ -174,7 +172,7 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom Actions */}
-      <div className="p-3 space-y-1 border-t border-[--border] shrink-0">
+      <div className="p-4 space-y-1 shrink-0">
         <button className={cn(
           "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-[--text-2] hover:bg-[--surface-raised] hover:text-[--text-1] transition-all",
           isCollapsed ? "justify-center" : "px-3"

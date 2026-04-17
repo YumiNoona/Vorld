@@ -67,20 +67,20 @@ export default function BillingPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold text-text-primary tracking-tight mb-2">Billing & Plan</h1>
-        <p className="text-sm text-text-secondary">Manage your subscription, usage quotas, and payment methods.</p>
+        <h1 className="text-2xl font-bold text-[--text-1] tracking-tighter mb-2">Billing & Plan</h1>
+        <p className="text-sm text-[--text-3]">Manage your subscription, usage quotas, and payment methods.</p>
       </div>
 
       {/* Usage Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {formattedStats.map((stat) => (
-          <div key={stat.label} className="p-6 rounded-xl bg-bg-secondary border border-border-default shadow-sm transition-all duration-150 hover:border-text-tertiary">
-            <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-[0.2em] mb-4">{stat.label}</p>
+          <div key={stat.label} className="p-8 rounded-2xl bg-[--surface-low] border border-[--border] shadow-sm transition-all duration-300 hover:bg-[--surface-raised]">
+            <p className="text-[11px] font-bold text-[--text-3] uppercase tracking-[0.2em] mb-4">{stat.label}</p>
             <div className="flex items-baseline justify-between mb-3">
-               <span className="text-2xl font-semibold text-text-primary tracking-tight">{stat.value}</span>
-               <span className="text-[11px] font-bold text-text-tertiary">{stat.percent.toFixed(1)}%</span>
+               <span className="text-2xl font-semibold text-[--text-1] tracking-tight">{stat.value}</span>
+               <span className="text-[11px] font-bold text-[--text-3]">{stat.percent.toFixed(1)}%</span>
             </div>
-            <div className="h-2 w-full bg-bg-primary rounded-full overflow-hidden border border-border-default">
+            <div className="h-1.5 w-full bg-[--surface-raised] rounded-full overflow-hidden">
                <motion.div 
                  initial={{ width: 0 }}
                  animate={{ width: `${stat.percent}%` }}
@@ -94,27 +94,27 @@ export default function BillingPage() {
 
       {/* Current Plan & Switcher */}
       <div className="space-y-6">
-        <h2 className="text-lg font-medium text-text-primary">Subscription Plans</h2>
+        <h2 className="text-lg font-bold text-[--text-1] uppercase tracking-widest opacity-60">Subscription Plans</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PLANS.map((plan) => (
             <div 
               key={plan.name}
               className={cn(
-                "relative p-6 rounded-2xl border transition-all duration-150",
+                "relative p-8 rounded-[24px] transition-all duration-300 border border-[--border]",
                 plan.current 
-                  ? "bg-accent/5 border-accent shadow-sm" 
-                   : "bg-bg-secondary border-border-default hover:border-text-tertiary"
+                  ? "bg-[--surface-raised] shadow-2xl" 
+                   : "bg-[--surface-low] hover:bg-[--surface-raised]"
               )}
             >
               {plan.current && (
-                <div className="absolute -top-3 left-6 px-2.5 py-1 rounded bg-accent text-[9px] font-bold text-white tracking-[0.15em] uppercase shadow-sm">
-                  Active Plan
+                <div className="absolute -top-3 left-8 px-3 py-1 rounded-full bg-accent text-[9px] font-bold text-white tracking-[0.2em] uppercase shadow-2xl">
+                  ACTIVE PLAN
                 </div>
               )}
-              <h3 className="text-sm font-bold text-text-secondary mb-1 uppercase tracking-widest">{plan.name}</h3>
+              <h3 className="text-sm font-bold text-[--text-3] mb-1 uppercase tracking-widest">{plan.name}</h3>
               <div className="flex items-baseline gap-1 mb-6">
-                 <span className="text-3xl font-semibold text-text-primary tracking-tight">${plan.price}</span>
-                 <span className="text-xs text-text-tertiary font-medium">/month</span>
+                 <span className="text-3xl font-semibold text-[--text-1] tracking-tight">${plan.price}</span>
+                 <span className="text-xs text-[--text-3] font-medium opacity-50">/month</span>
               </div>
               <ul className="space-y-4 mb-8">
                 {plan.features.map(f => (
@@ -131,8 +131,8 @@ export default function BillingPage() {
                 className={cn(
                   "w-full h-10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98]",
                   plan.current 
-                    ? "bg-bg-primary text-text-tertiary border border-border-default cursor-not-allowed" 
-                    : "bg-accent hover:brightness-110 text-white shadow-md shadow-accent/20"
+                    ? "bg-[--surface-low] text-[--text-3] opacity-40 cursor-not-allowed" 
+                    : "bg-[--text-1] text-[--bg] hover:opacity-90 shadow-2xl"
                 )}
               >
                 {plan.current ? "Active" : "Upgrade"}
@@ -143,36 +143,36 @@ export default function BillingPage() {
       </div>
 
       {/* Payment Method */}
-      <div className="p-8 rounded-2xl bg-bg-secondary border border-border-default flex flex-col md:flex-row items-center gap-8 shadow-sm">
-         <div className="w-14 h-14 rounded-2xl bg-bg-primary border border-border-default flex items-center justify-center text-text-tertiary">
-            <CreditCard className="w-7 h-7 opacity-40" />
+      <div className="p-10 rounded-[32px] bg-[--surface-low] border border-[--border] flex flex-col md:flex-row items-center gap-10 shadow-sm">
+         <div className="w-16 h-16 rounded-[20px] bg-[--surface-raised] border border-[--border] flex items-center justify-center text-[--text-3]">
+            <CreditCard className="w-8 h-8 opacity-40" />
          </div>
          <div className="flex-1 text-center md:text-left">
-            <h3 className="text-lg font-semibold text-text-primary mb-1">Payment Method</h3>
-            <p className="text-sm text-text-secondary leading-relaxed">Your subscription is currently on the Free tier. Add a payment method to seamlessly upgrade to higher limits.</p>
+            <h3 className="text-lg font-semibold text-[--text-1] mb-1">Payment Method</h3>
+            <p className="text-sm text-[--text-3] leading-relaxed">Your subscription is currently on the Free tier. Add a payment method to seamlessly upgrade to higher limits.</p>
          </div>
-         <button className="h-10 px-6 bg-bg-primary hover:bg-bg-secondary text-text-primary text-xs font-bold uppercase tracking-widest rounded-xl border border-border-default transition-all active:scale-95 shadow-sm">
+         <button className="h-11 px-8 bg-[--surface-low] hover:bg-[--surface-subtle] text-[--text-1] text-[11px] font-bold uppercase tracking-widest rounded-full transition-all active:scale-95 shadow-2xl">
             Add Payment Method
          </button>
       </div>
 
       {/* History */}
-      <div className="space-y-4">
-         <h2 className="text-lg font-medium text-text-primary">Billing History</h2>
-         <div className="rounded-xl border border-border-default overflow-hidden bg-bg-secondary shadow-sm">
+      <div className="space-y-6">
+         <h2 className="text-[11px] font-bold uppercase tracking-[0.25em] text-[--text-3] opacity-60">Billing History</h2>
+         <div className="rounded-[24px] overflow-hidden bg-[--surface-low] border border-[--border] shadow-sm">
             <table className="w-full text-left text-sm">
-               <thead className="bg-bg-primary/50 border-b border-border-default">
+               <thead className="bg-[--surface-low]">
                   <tr>
-                     <th className="px-6 py-4 text-[10px] font-bold text-text-tertiary uppercase tracking-widest">Date</th>
-                     <th className="px-6 py-4 text-[10px] font-bold text-text-tertiary uppercase tracking-widest">Amount</th>
-                     <th className="px-6 py-4 text-[10px] font-bold text-text-tertiary uppercase tracking-widest">Status</th>
-                     <th className="px-6 py-4 text-[10px] font-bold text-text-tertiary uppercase tracking-widest">Invoice</th>
+                     <th className="px-8 py-5 text-[10px] font-bold text-[--text-3] uppercase tracking-[0.25em]">Date</th>
+                     <th className="px-8 py-5 text-[10px] font-bold text-[--text-3] uppercase tracking-[0.25em]">Amount</th>
+                     <th className="px-8 py-5 text-[10px] font-bold text-[--text-3] uppercase tracking-[0.25em]">Status</th>
+                     <th className="px-8 py-5 text-[10px] font-bold text-[--text-3] uppercase tracking-[0.25em]">Invoice</th>
                   </tr>
                </thead>
-               <tbody className="divide-y divide-border-default">
-                  <tr className="hover:bg-bg-primary/30 transition-colors">
-                     <td className="px-6 py-4 text-text-secondary font-medium">Apr 1, 2024</td>
-                     <td className="px-6 py-4 text-text-primary font-semibold">$0.00</td>
+               <tbody className="divide-y divide-[--surface-low]">
+                  <tr className="hover:bg-[--surface-low]/50 transition-colors">
+                     <td className="px-6 py-4 text-[--text-1] font-medium">Apr 1, 2024</td>
+                     <td className="px-6 py-4 text-[--text-1] font-semibold">$0.00</td>
                      <td className="px-6 py-4">
                         <span className="px-2.5 py-1 rounded-full bg-accent/10 text-accent text-[9px] font-bold uppercase tracking-widest">Successful</span>
                      </td>

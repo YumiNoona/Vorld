@@ -35,87 +35,48 @@ function DockItem({
   icon: Icon,
   label,
   isActive,
-  mouseX,
-  isDark,
 }: {
   href: string;
   icon: React.ComponentType<any>;
   label: string;
   isActive: boolean;
-  mouseX: any;
-  isDark: boolean;
 }) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const baseSize = 44;
-
-  // Single source distance logic
-  const distance = useMotionValue(200);
-  
-  // High-fidelity spring logic
-  const springValue = useSpring(distance, SPRING_CONFIG);
-
-  // Sync distance without re-renders
-  useEffect(() => {
-    const unsub = mouseX.on("change", (mx: number) => {
-      if (!ref.current || mx < 0) {
-        distance.set(200);
-        return;
-      }
-      const rect = ref.current.getBoundingClientRect();
-      const center = rect.left + rect.width / 2;
-      distance.set(Math.abs(mx - center));
-    });
-    return unsub;
-  }, [mouseX, distance]);
-
-  // Derived transforms from the single spring value
-  const scale = useTransform(springValue, DISTANCE_RANGE, MAGNIFICATION_RANGE, { clamp: true });
-  const translateY = useTransform(scale, (s: number) => (s - 1) * -10);
-
   return (
     <motion.div
-      style={{ scale, y: translateY, willChange: "transform", width: baseSize, height: baseSize }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       className="origin-bottom relative group"
     >
       <Link
-        ref={ref}
         href={href}
         className={cn(
-          "relative flex items-center justify-center w-full h-full rounded-[14px] transition-colors duration-200",
-          !isActive && (isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/[0.04]")
+          "relative flex items-center justify-center w-11 h-11 rounded-[14px] transition-colors duration-200",
+          !isActive && "hover:bg-[--surface-low]"
         )}
       >
-        {/* Amber Pill Background for Active State */}
+        {/* Subtle Backdrop for Active State */}
         {isActive && (
           <motion.div
             layoutId="active-pill"
-            className="absolute inset-0 rounded-[14px] bg-[--accent-subtle] border border-[--accent-border] z-0"
+            className="absolute inset-0 rounded-[14px] bg-[--surface-low] z-0"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
 
         <Icon
           className={cn(
-            "relative z-10 transition-colors duration-200",
-            isActive ? "text-[--accent]" : (isDark ? "text-[--text-3] group-hover:text-[--text-2]" : "text-[--text-3] group-hover:text-[--text-2]")
+            "relative z-10 transition-colors duration-250",
+            isActive ? "text-[--text-1]" : "text-[--text-3] group-hover:text-[--text-2]"
           )}
           style={{ width: 19, height: 19 }}
-          strokeWidth={isActive ? 2.2 : 1.8}
+          strokeWidth={isActive ? 2 : 1.5}
         />
 
-        {/* Tooltip with AnimatePresence */}
-        <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.95 }}
-            whileHover={{ opacity: 1, y: 0, scale: 1 }}
-            className="absolute bottom-full mb-4 px-2.5 py-1.5 rounded-lg border border-[--border] bg-[--surface] shadow-xl pointer-events-none whitespace-nowrap hidden group-hover:block"
-          >
-             <span className="text-[--text-1] text-[11px] font-medium tracking-tight">{label}</span>
-          </motion.div>
-        </AnimatePresence>
+        {/* Tooltip */}
+        <div className="absolute bottom-full mb-4 px-2.5 py-1.5 rounded-lg border border-[--surface-low] bg-[--surface] shadow-2xl pointer-events-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+           <span className="text-[--text-1] text-[11px] font-bold uppercase tracking-[0.1em]">{label}</span>
+        </div>
       </Link>
-
-      <motion.div whileTap={{ scale: 0.92 }} className="absolute inset-0 pointer-events-none" />
     </motion.div>
   );
 }
@@ -127,9 +88,7 @@ export function AppDock() {
   const [mounted, setMounted] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
-  const mouseX = useMotionValue(-1);
 
   const isDark = resolvedTheme === "dark";
 
@@ -151,7 +110,7 @@ export function AppDock() {
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center">
       <AnimatePresence>
         {showMore && (
           <motion.div
@@ -159,18 +118,10 @@ export function AppDock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 450, damping: 32 }}
-            className={cn(
-              "mb-3 p-1.5 min-w-[240px] rounded-[22px] overflow-hidden",
-              isDark ? "glass-dark" : "glass-light"
-            )}
-            style={{
-              boxShadow: isDark 
-                ? "0 0 0 0.5px rgba(255,255,255,0.06) inset, 0 1px 0 rgba(255,255,255,0.18) inset, 0 -1px 0 rgba(0,0,0,0.3) inset, 0 16px 40px rgba(0,0,0,0.5)"
-                : "0 1px 0 rgba(255,255,255,0.9) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 16px 40px rgba(0,0,0,0.12)"
-            }}
+            className="mb-3 p-1.5 min-w-[240px] rounded-[22px] overflow-hidden bg-[--surface] border border-[--surface-low] shadow-3xl"
           >
             <div className="px-4 py-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[--surface-raised] border border-[--border] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-[--surface-subtle] border border-[--surface-low] flex items-center justify-center overflow-hidden shrink-0">
                 {profile?.avatar_url ? (
                   <img src={supabase.storage.from("avatars").getPublicUrl(profile.avatar_url).data.publicUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -181,68 +132,56 @@ export function AppDock() {
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[13px] font-semibold text-[--text-1] truncate">{profile?.full_name || "User"}</span>
-                  <span className="px-1.5 py-0.5 rounded-full bg-[--accent-subtle] text-[--accent] text-[9px] font-bold uppercase tracking-wider border border-[--accent-border]">
+                  <span className="text-[13px] font-bold text-[--text-1] tracking-tight truncate">{profile?.full_name || "User"}</span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-[--surface-low] text-[--text-3] text-[9px] font-bold uppercase tracking-wider">
                     {profile?.plan || "Free"}
                   </span>
                 </div>
-                <span className="text-[11px] text-[--text-3] truncate">{profile?.email}</span>
+                <span className="text-[11px] text-[--text-3] truncate opacity-50">{profile?.email}</span>
               </div>
             </div>
 
-            <div className="h-px mx-2 my-1 bg-[--border]" />
+            <div className="h-px mx-2 my-1 bg-[--surface-low]" />
 
-            <button onClick={() => setTheme(isDark ? "light" : "dark")} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] text-[--text-2] hover:text-[--text-1] hover:bg-[--surface-raised] transition-colors">
+            <button onClick={() => setTheme(isDark ? "light" : "dark")} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] text-[--text-2] hover:text-[--text-1] hover:bg-[--surface-low] transition-colors">
               {isDark ? <IconSun className="w-4 h-4" /> : <IconMoon className="w-4 h-4" />}
               {isDark ? "Light Mode" : "Dark Mode"}
             </button>
 
-            <button className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] text-[--text-2] hover:text-[--text-1] hover:bg-[--surface-raised] transition-colors">
+            <button className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] text-[--text-2] hover:text-[--text-1] hover:bg-[--surface-low] transition-colors">
               <IconHelp className="w-4 h-4" />
               Help & Support
             </button>
 
-            <div className="h-px mx-2 my-1 bg-[--border]" />
+            <div className="h-px mx-2 my-1 bg-[--surface-low]" />
 
-            <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors">
+            <button onClick={handleSignOut} className="w-full h-10 flex items-center gap-3 px-3.5 rounded-xl text-[13px] font-bold text-red-500 hover:bg-red-500/10 transition-colors uppercase tracking-widest text-center justify-center">
                Sign Out
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <nav
-        className={cn(
-          "relative flex items-center gap-1 border border-[--border] rounded-[26px] p-2",
-          isDark ? "glass-dark shadow-[0_16px_40px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.3)]" : "glass-light shadow-[0_16px_40px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.06)]"
-        )}
-        style={{
-          boxShadow: isDark 
-            ? "0 0 0 0.5px rgba(255,255,255,0.06) inset, 0 1px 0 rgba(255,255,255,0.18) inset, 0 -1px 0 rgba(0,0,0,0.3) inset, 0 16px 40px rgba(0,0,0,0.5)"
-            : "0 1px 0 rgba(255,255,255,0.9) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 16px 40px rgba(0,0,0,0.12)"
-        }}
-        onMouseMove={(e) => mouseX.set(e.clientX)}
-        onMouseLeave={() => mouseX.set(-1)}
-      >
+      <nav className="relative flex items-center gap-1 rounded-[26px] p-2 bg-[--surface] border border-[--surface-low] shadow-3xl">
         {NAV_ITEMS.map((item) => (
-          <DockItem key={item.label} href={item.href} icon={item.icon} label={item.label} isActive={pathname === item.href} mouseX={mouseX} isDark={isDark} />
+          <DockItem key={item.label} href={item.href} icon={item.icon} label={item.label} isActive={pathname === item.href} />
         ))}
 
-        <div className="w-px h-5 mx-2 bg-[--border]" />
+        <div className="w-px h-5 mx-2 bg-[--surface-low]" />
 
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => setShowMore((v) => !v)}
           className={cn(
             "relative flex items-center justify-center w-11 h-11 rounded-[14px] transition-colors duration-250",
-            showMore ? (isDark ? "bg-white/[0.12]" : "bg-black/[0.06]") : (isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/[0.04]")
+            showMore ? "bg-[--surface-low]" : "hover:bg-[--surface-subtle]"
           )}
         >
-          <div className="w-8 h-8 rounded-full bg-[--surface-raised] border border-[--border] flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-transform group-hover:scale-105">
+          <div className="w-8 h-8 rounded-full bg-[--surface-subtle] border border-[--surface-low] flex items-center justify-center overflow-hidden shrink-0 transition-transform group-hover:scale-105">
             {profile?.avatar_url ? (
               <img src={supabase.storage.from("avatars").getPublicUrl(profile.avatar_url).data.publicUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-[--text-3] text-[10px] font-bold uppercase leading-none">
+              <span className="text-[--text-3] text-[10px] font-bold uppercase leading-none opacity-50">
                 {profile?.full_name?.charAt(0) || "U"}
               </span>
             )}

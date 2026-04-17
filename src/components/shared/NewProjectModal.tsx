@@ -76,7 +76,7 @@ async function generateThumbnail(
     if (!blob) return null;
 
     // 7. Upload to Supabase
-    const thumbPath = `thumbnails/${projectId}.jpg`;
+    const thumbPath = `${userId}/${projectId}.jpg`;
     const { error: uploadErr } = await supabase.storage
       .from("thumbnails")
       .upload(thumbPath, blob, { upsert: true, contentType: "image/jpeg" });
@@ -222,7 +222,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
       try {
         let thumbnailUrl = null;
         if (customThumbnail) {
-          const thumbPath = `thumbnails/${project.id}.${customThumbnail.name.split('.').pop()}`;
+          const thumbPath = `${user.id}/${project.id}.${customThumbnail.name.split('.').pop()}`;
           const { error: thumbUploadErr } = await supabase.storage
             .from("thumbnails")
             .upload(thumbPath, customThumbnail, { upsert: true });
@@ -260,7 +260,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
     }}>
       <DialogTrigger asChild>
         {children || (
-          <button className="h-10 px-4 flex items-center gap-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg shadow-lg active:scale-95 transition-all">
+          <button className="h-10 px-6 flex items-center gap-3 bg-[--text-1] hover:opacity-90 text-[--bg] text-[11px] font-bold uppercase tracking-widest rounded-full shadow-2xl active:scale-95 transition-all">
             <Plus className="w-4 h-4" />
             New project
           </button>
@@ -268,7 +268,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
       </DialogTrigger>
       
       {/* Contrast Glass Styling Applied Below */}
-      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[--bg]/60 backdrop-blur-[20px] saturate-[140%] border-[--border] sm:rounded-2xl shadow-2xl">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[--bg] border border-[--border] sm:rounded-2xl shadow-3xl">
         <DialogHeader>
           <DialogTitle className="sr-only">New Project</DialogTitle>
         </DialogHeader>
@@ -297,12 +297,12 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                       "group relative aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all duration-300",
                       file 
                         ? "border-[--green]/50 bg-[--green-subtle]" 
-                        : "border-[--border] hover:border-[--accent]/40 hover:bg-white/5 bg-black/20"
+                        : "border-[--border] hover:border-[--accent] hover:bg-[--surface-low] bg-[--surface-subtle]"
                     )}
                   >
                     {!file && (
                       <>
-                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-[--text-3] group-hover:text-[--accent] group-hover:scale-110 transition-all duration-300">
+                        <div className="w-14 h-14 rounded-full bg-[--surface-low] flex items-center justify-center text-[--text-3] group-hover:text-[--accent] group-hover:scale-110 transition-all duration-300">
                            <Upload className="w-7 h-7" />
                         </div>
                         <div className="text-center">
@@ -343,7 +343,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                     <button
                       disabled={!file}
                       onClick={() => setStep(2)}
-                      className="h-11 px-8 bg-white text-black hover:bg-white/90 disabled:opacity-50 text-sm font-bold rounded-xl transition-all flex items-center gap-2 active:scale-95"
+                      className="h-12 px-10 bg-[--text-1] text-[--bg] hover:opacity-90 disabled:opacity-50 text-[11px] font-bold uppercase tracking-[0.2em] rounded-full transition-all flex items-center gap-3 active:scale-95 shadow-2xl"
                     >
                       Continue
                       <ArrowRight className="w-4 h-4" />
@@ -371,7 +371,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="My Awesome Scene"
-                          className="w-full h-12 px-4 rounded-xl bg-black/30 border border-white/10 focus:border-[--accent]/50 outline-none transition-all text-white placeholder:text-[--text-3] font-medium"
+                          className="w-full h-12 px-4 rounded-xl bg-[--surface-subtle] border border-[--border] focus:border-[--accent]/50 outline-none transition-all text-[--text-1] placeholder:text-[--text-3] font-medium"
                         />
                      </div>
                      <div className="space-y-2">
@@ -380,14 +380,14 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           placeholder="What is this project about?"
-                          className="w-full h-28 p-4 rounded-xl bg-black/30 border border-white/10 focus:border-[--accent]/50 outline-none transition-all resize-none text-white placeholder:text-[--text-3] font-medium"
+                          className="w-full h-28 p-4 rounded-xl bg-[--surface-subtle] border border-[--border] focus:border-[--accent]/50 outline-none transition-all resize-none text-[--text-1] placeholder:text-[--text-3] font-medium"
                         />
                      </div>
 
                      <div className="space-y-4">
                         <label className="text-xs font-bold text-[--text-3] uppercase tracking-widest block">Project Thumbnail (Optional)</label>
                         <div className="flex items-start gap-4">
-                           <div className="relative w-32 aspect-video rounded-xl bg-black/30 border border-white/10 overflow-hidden group/thumb flex items-center justify-center">
+                           <div className="relative w-32 aspect-video rounded-xl bg-[--surface-subtle] border border-[--border] overflow-hidden group/thumb flex items-center justify-center">
                               {customThumbnailPreview ? (
                                 <img src={customThumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
                               ) : (
@@ -445,9 +445,8 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                               </span>
                             )}
                           </div>
-                          {!thumbnailStatus && <span className="text-[--text-1]">{uploadProgress}%</span>}
-                       </div>
-                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
+                          </div>
+                        <div className="h-1.5 w-full bg-[--surface-subtle] rounded-full overflow-hidden border border-[--border]">
                           <motion.div 
                             className="h-full bg-[--accent] shadow-[0_0_15px_rgba(245,158,11,0.4)]"
                             initial={{ width: 0 }}
@@ -484,7 +483,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
           </div>
 
           {/* Side Info Panel */}
-          <div className="hidden md:flex w-64 bg-black/40 border-l border-white/10 p-8 flex-col justify-between">
+          <div className="hidden md:flex w-80 bg-[--surface-low] border-l border-[--border] p-10 flex-col justify-between">
              <div className="space-y-8">
                <div className="space-y-4">
                   <div className="w-10 h-10 rounded-xl bg-[--accent-subtle] border border-[--accent-border] flex items-center justify-center text-[--accent]">
@@ -493,7 +492,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                   <p className="text-xs font-bold text-[--text-3] leading-relaxed uppercase tracking-wide">
                      Optimized Engine
                   </p>
-                  <p className="text-[11px] text-[--text-3] opacity-70 leading-relaxed font-medium">
+                  <p className="text-[12px] text-[--text-1] leading-relaxed font-bold">
                      Your assets are automatically prepared for high-performance WebGL rendering.
                   </p>
                </div>
@@ -505,18 +504,18 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                   <p className="text-xs font-bold text-[--text-3] leading-relaxed uppercase tracking-wide">
                      Selection System
                   </p>
-                  <p className="text-[11px] text-[--text-3] opacity-70 leading-relaxed font-medium">
+                  <p className="text-[12px] text-[--text-1] leading-relaxed font-bold">
                      Use named groups in Blender to easily add interactions later.
                   </p>
                </div>
              </div>
 
-             <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                   <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Quota</span>
+             <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-center gap-2 mb-3">
+                   <AlertTriangle className="w-4 h-4 text-amber-500" />
+                   <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Quota</span>
                 </div>
-                <p className="text-[10px] text-[--text-3] leading-relaxed font-medium">
+                <p className="text-[13px] text-[--text-1] leading-relaxed font-medium">
                    Free projects are limited to 100MB per file.
                 </p>
              </div>

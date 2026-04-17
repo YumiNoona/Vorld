@@ -31,7 +31,7 @@ export function MeshExplorer({ width, isCollapsed }: { width?: number, isCollaps
     <aside 
       style={panelStyle}
       className={cn(
-        "border-r border-[--border] bg-[--surface] shrink-0 flex flex-col z-10 editor-panel-transition",
+        "bg-[--bg] shrink-0 flex flex-col z-10 editor-panel-transition",
         isCollapsed ? "overflow-hidden border-none opacity-0" : "opacity-100"
       )}
     >
@@ -63,7 +63,7 @@ function MeshList({ url }: { url: string }) {
 
   return (
     <>
-      <div className="h-12 border-b border-[--border] px-4 flex items-center justify-between shrink-0 bg-[--bg]/10">
+      <div className="h-12 px-4 flex items-center justify-between shrink-0 bg-[--surface-low]">
         {isSearching ? (
           <div className="flex-1 flex items-center gap-2 animate-in slide-in-from-right-2 duration-200">
             <Search className="w-3.5 h-3.5 text-[--text-3]" />
@@ -81,7 +81,7 @@ function MeshList({ url }: { url: string }) {
           </div>
         ) : (
           <>
-            <span className="text-sm font-semibold text-[--text-2] tracking-tight">Scene Explorer</span>
+            <span className="text-sm font-bold text-[--text-1] tracking-tight">Scene Explorer</span>
             <button 
               onClick={() => setIsSearching(true)}
               className="p-1.5 rounded-md hover:bg-[--surface-raised] text-[--text-3] hover:text-[--text-1] transition-colors"
@@ -108,7 +108,7 @@ function MeshList({ url }: { url: string }) {
                 "group flex items-center gap-3 h-9 w-full px-3 rounded-lg text-sm font-medium transition-all duration-150 active:scale-[0.98]",
                 isSelected 
                   ? "bg-[--accent-subtle] text-[--accent] ring-1 ring-inset ring-[--accent-border]/50" 
-                  : "text-[--text-2] hover:bg-[--surface-raised] hover:text-[--text-1]"
+                  : "text-[--text-1] hover:bg-[--surface-raised] hover:text-[--text-1]"
               )}
             >
               <Box className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-[--accent]" : "text-[--text-3]")} />
@@ -132,7 +132,7 @@ function MeshList({ url }: { url: string }) {
         )}
       </div>
 
-      <div className="p-4 border-t border-[--border] bg-[--bg]">
+      <div className="p-4 bg-[--bg]">
          <p className="text-xs text-[--text-3] font-medium leading-loose">
             Total nodes: {meshes.length}
          </p>

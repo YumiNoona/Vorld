@@ -71,8 +71,8 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary tracking-tight mb-2">Projects</h1>
-          <p className="text-sm text-text-secondary">Manage and organize your 3D experiences.</p>
+          <h1 className="font-bold text-[--text-1] tracking-tighter mb-2" style={{ fontSize: 'var(--text-heading-1)' }}>Projects</h1>
+          <p className="text-[13px] font-medium text-[--text-3]">Manage and organize your 3D experiences.</p>
         </div>
         <NewProjectModal />
       </div>
@@ -80,13 +80,13 @@ export default function ProjectsPage() {
       {/* Toolbar - Removed "ugly lines" (borders) and updated typography */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 py-2">
         {/* Left: Filters */}
-        <div className="flex items-center gap-1 bg-bg-secondary/50 p-1 rounded-xl self-start backdrop-blur-sm">
+        <div className="flex items-center gap-1 bg-[--surface-low] p-1 rounded-full self-start border border-[--border]">
            {(["all", "public", "private"] as const).map((f) => (
              <button
                key={f}
                onClick={() => setFilter(f)}
                className={cn(
-                 "px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all",
+                 "px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
                  filter === f 
                    ? "bg-bg-primary text-text-primary shadow-sm ring-1 ring-white/5" 
                    : "text-text-tertiary hover:text-text-secondary"
@@ -101,28 +101,27 @@ export default function ProjectsPage() {
         <div className="flex flex-1 items-center gap-4">
            <div className="relative flex-1 max-w-md group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary group-focus-within:text-accent transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Search projects..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-11 pl-11 pr-4 rounded-xl bg-bg-secondary/50 border-none focus:ring-2 focus:ring-accent/20 transition-all text-sm outline-none text-text-primary placeholder:text-text-tertiary/50"
-              />
+               <input 
+                 type="text" 
+                 placeholder="Search projects..." 
+                 value={search}
+                 onChange={(e) => setSearch(e.target.value)}
+                 className="w-full h-11 pl-11 pr-4 rounded-full bg-[--surface-subtle] border-none focus:ring-2 focus:ring-accent/10 transition-all text-[13px] outline-none text-[--text-1] placeholder:text-[--text-3] opacity-70 focus:opacity-100"
+               />
            </div>
-           
-           <div className="flex items-center gap-1 bg-bg-secondary/50 p-1 rounded-xl backdrop-blur-sm">
-              <button 
-                onClick={() => setIsViewList(false)}
-                className={cn("p-2 rounded-lg transition-all", !isViewList ? "bg-bg-primary text-text-primary shadow-sm ring-1 ring-white/5" : "text-text-tertiary hover:text-text-secondary")}
-              >
-                 <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setIsViewList(true)}
-                className={cn("p-2 rounded-lg transition-all", isViewList ? "bg-bg-primary text-text-primary shadow-sm ring-1 ring-white/5" : "text-text-tertiary hover:text-text-secondary")}
-              >
-                 <List className="w-4 h-4" />
-              </button>
+                      <div className="flex items-center gap-1 bg-[--surface-subtle] p-1 rounded-full">
+               <button 
+                 onClick={() => setIsViewList(false)}
+                 className={cn("p-2.5 rounded-full transition-all", !isViewList ? "bg-[--text-1] text-[--bg] shadow-2xl" : "text-[--text-3] hover:text-[--text-2]")}
+               >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+               </button>
+               <button 
+                 onClick={() => setIsViewList(true)}
+                 className={cn("p-2.5 rounded-full transition-all", isViewList ? "bg-[--text-1] text-[--bg] shadow-2xl" : "text-[--text-3] hover:text-[--text-2]")}
+               >
+                  <List className="w-3.5 h-3.5" />
+               </button>
            </div>
         </div>
       </div>
@@ -159,27 +158,22 @@ export default function ProjectsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center justify-center py-40 space-y-10 text-center"
         >
-           <div className="relative">
-              <div className="absolute inset-0 bg-accent/20 blur-[100px] rounded-full opacity-50" />
-              <div className="relative w-32 h-32 rounded-[2.5rem] bg-bg-secondary border-none flex items-center justify-center text-accent shadow-2xl group overflow-hidden">
-                 <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                 <Plus className="w-12 h-12 group-hover:scale-110 transition-transform duration-500 relative z-10" />
-              </div>
-           </div>
-           
-           <div className="max-w-md space-y-4">
-              <h3 className="text-3xl font-bold text-text-primary tracking-tight leading-none">No projects yet</h3>
-              <p className="text-text-secondary text-lg leading-relaxed">
-                 You haven&apos;t created any 3D experiences. Upload a model to start building interactive worlds today.
-              </p>
-           </div>
+            <NewProjectModal>
+               <button className="relative group outline-none active:scale-95 transition-transform">
+                  <div className="absolute inset-0 bg-accent/20 blur-[100px] rounded-full opacity-50 transition-opacity group-hover:opacity-80" />
+                  <div className="relative w-32 h-32 rounded-[3.5rem] bg-[--surface-low] border border-[--border] flex items-center justify-center text-accent shadow-3xl overflow-hidden group-hover:border-accent/40 transition-colors">
+                     <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                     <Plus className="w-12 h-12 group-hover:scale-110 transition-transform duration-700 relative z-10" />
+                  </div>
+               </button>
+            </NewProjectModal>
+                      <div className="max-w-md space-y-4">
+               <h3 className="text-4xl font-bold text-[--text-1] tracking-tighter leading-none">Perspective empty.</h3>
+               <p className="text-[--text-3] text-[15px] font-medium leading-relaxed uppercase tracking-[0.2em] opacity-50">
+                  Create your first world to begin
+               </p>
+            </div>
 
-           <NewProjectModal>
-              <button className="h-14 px-12 bg-accent hover:brightness-110 text-white text-sm font-semibold rounded-2xl shadow-2xl hover:shadow-accent/40 active:scale-95 transition-all flex items-center gap-3">
-                <Plus className="w-5 h-5" />
-                Create your first project
-              </button>
-           </NewProjectModal>
         </motion.div>
       )}
     </div>
