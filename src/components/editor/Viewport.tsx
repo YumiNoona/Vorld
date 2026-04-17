@@ -230,8 +230,8 @@ function SceneManager({ url, meshMap }: { url: string, meshMap: React.RefObject<
 
       if (isSelected) {
          if (!mat.emissive) mat.emissive = new THREE.Color(0,0,0);
-         mat.emissive.set('#10b981');
-         mat.emissiveIntensity = 1.0;
+         mat.emissive.set('#F59E0B');
+         mat.emissiveIntensity = 0.85; // HDR Safety Guard
       } else if (mat.emissive && mat.emissive.getHex() !== 0x000000) {
          mat.emissive.set('#000000');
          mat.emissiveIntensity = 0;
@@ -310,7 +310,7 @@ function LabelPin({ label, mesh }: { label: any, mesh: THREE.Mesh }) {
           fontSize: `${label.fontSize}px`
         }}
       >
-        <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+        <div className="w-1 h-1 rounded-full bg-[--accent] animate-pulse" />
         <span className="text-white font-medium tracking-tight whitespace-nowrap">{label.text}</span>
       </div>
     </Html>
@@ -348,7 +348,7 @@ function SelectionHighlights({ meshMap }: { meshMap: React.RefObject<Record<stri
 
   // UseMemo for stable, scale-aware Inverted Hull Outlines
   const hulls = useMemo(() => {
-    const outlineMat = createOutlineMaterial('#10b981', 0.02);
+    const outlineMat = createOutlineMaterial('#F59E0B', 0.02);
     return selectedObjects.map(obj => {
        const hull = new THREE.Mesh(obj.geometry, outlineMat);
        hull.matrixAutoUpdate = false;
@@ -359,7 +359,7 @@ function SelectionHighlights({ meshMap }: { meshMap: React.RefObject<Record<stri
   // UseMemo for BoxHelpers with proper Disposal tracking
   const helpers = useMemo(() => {
     return selectedObjects.map(obj => {
-       const helper = new THREE.BoxHelper(obj, '#10b981');
+       const helper = new THREE.BoxHelper(obj, '#F59E0B');
        return helper;
     });
   }, [selectedObjects]);
@@ -443,7 +443,7 @@ export function Viewport() {
           // Clean background initialization
         }}
       >
-        <color attach="background" args={['#0b0f14']} />
+        <color attach="background" args={['#0c0c0c']} />
         <PerspectiveCamera
           makeDefault
           position={savedCamera.position}

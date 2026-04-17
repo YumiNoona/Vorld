@@ -94,7 +94,7 @@ interface ActionFormProps {
 }
 
 const InputLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[11px] font-medium text-text-tertiary mb-1 block">
+  <span className="text-[11px] font-medium text-[--text-3] mb-1 block">
     {children}
   </span>
 );
@@ -205,21 +205,21 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
         <div className="space-y-3">
           <InputLabel>Camera Offset From Target</InputLabel>
           <div className="grid grid-cols-3 gap-2">
-             {["X", "Y", "Z"].map((axis, i) => (
-               <div key={axis} className="relative">
-                 <input 
-                   type="number" 
-                   step="0.5" 
-                   className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary text-center hover:border-text-tertiary focus:border-accent outline-none transition-all" 
-                   value={config.offset?.[i] ?? 0} 
-                   onChange={e => {
-                    const newOffsets = [...(config.offset || [0,0,0])];
-                    newOffsets[i] = parseFloat(e.target.value) || 0;
-                    onUpdate({ offset: newOffsets });
-                 }} />
-                 <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[8px] font-medium text-text-tertiary opacity-30">{axis}</span>
-               </div>
-             ))}
+              {["X", "Y", "Z"].map((axis, i) => (
+                <div key={axis} className="relative">
+                  <input 
+                    type="number" 
+                    step="0.5" 
+                    className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm px-3 text-[--text-1] text-center hover:border-[--text-3] focus:border-[--accent] outline-none transition-all" 
+                    value={config.offset?.[i] ?? 0} 
+                    onChange={e => {
+                     const newOffsets = [...(config.offset || [0,0,0])];
+                     newOffsets[i] = parseFloat(e.target.value) || 0;
+                     onUpdate({ offset: newOffsets });
+                  }} />
+                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[8px] font-medium text-[--text-3] opacity-30">{axis}</span>
+                </div>
+              ))}
           </div>
         </div>
       );
@@ -233,12 +233,12 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
               <select 
                 value={config.clip || ""} 
                 onChange={e => onUpdate({ clip: e.target.value })}
-                className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer"
+                className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-3 text-sm text-[--text-1] outline-none focus:border-[--accent] appearance-none transition-all cursor-pointer"
               >
                 <option value="" disabled>Select animation...</option>
                 {animations.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
-              <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
+              <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[--text-3]" />
             </div>
           </div>
           <label className="flex items-center gap-3 cursor-pointer group">
@@ -246,9 +246,9 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
               type="checkbox" 
               checked={config.loop ?? true}
               onChange={(e) => onUpdate({ loop: e.target.checked })}
-              className="w-4 h-4 rounded border-border-default bg-bg-primary text-accent focus:ring-accent accent-accent"
+              className="w-4 h-4 rounded border-[--border] bg-[--surface-raised] text-[--accent] focus:ring-[--accent] accent-[--accent] cursor-pointer"
             />
-            <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">Loop animation</span>
+            <span className="text-[--text-2] group-hover:text-[--text-1] transition-colors">Loop animation</span>
           </label>
         </div>
       );
@@ -260,16 +260,16 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
 
       return (
         <div className="space-y-4">
-          <div className="flex p-1 bg-bg-secondary rounded-lg border border-border-default">
+          <div className="flex p-1 bg-[--bg] rounded-lg border border-[--border]">
             <button 
               onClick={() => onUpdate({ sourceType: 'url' })}
-              className={cn("flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all", !isLocal ? "bg-bg-primary text-accent shadow-sm" : "text-text-tertiary hover:text-text-secondary")}
+              className={cn("flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all", !isLocal ? "bg-[--surface-raised] text-[--accent] shadow-sm" : "text-[--text-3] hover:text-[--text-2]")}
             >
               Remote URL
             </button>
             <button 
               onClick={() => onUpdate({ sourceType: 'file' })}
-              className={cn("flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all", isLocal ? "bg-bg-primary text-accent shadow-sm" : "text-text-tertiary hover:text-text-secondary")}
+              className={cn("flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all", isLocal ? "bg-[--surface-raised] text-[--accent] shadow-sm" : "text-[--text-3] hover:text-[--text-2]")}
             >
               Upload Local
             </button>
@@ -294,10 +294,10 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
                      }
                    }}
                  />
-                 <label 
-                   htmlFor={`audio-upload-${action.id}`}
-                   className="w-full h-10 border-2 border-dashed border-border-default rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:bg-accent/5 cursor-pointer transition-all"
-                 >
+                  <label 
+                    htmlFor={`audio-upload-${action.id}`}
+                    className="w-full h-10 border-2 border-dashed border-[--border] rounded-lg flex items-center justify-center gap-2 hover:border-[--accent] hover:bg-[--accent-subtle]/10 cursor-pointer transition-all text-sm font-medium text-[--text-3] hover:text-[--accent]"
+                  >
                    <ArrowUpToLine className="w-4 h-4 text-text-tertiary" />
                    <span className="text-xs font-medium text-text-secondary">{config.fileName || "Choose MP3/WAV..."}</span>
                  </label>
@@ -310,8 +310,8 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
                   placeholder="https://example.com/audio.mp3" 
                   onChange={e => onUpdate({ src: e.target.value })} 
                   className={cn(
-                    "w-full h-9 bg-bg-primary rounded-lg border px-3 text-sm text-text-primary outline-none transition-all",
-                    (isYoutube || isSpotify) ? "border-red-500/50" : "border-border-default focus:border-accent"
+                    "w-full h-9 bg-[--surface-raised] rounded-lg border px-3 text-sm text-[--text-1] outline-none transition-all",
+                    (isYoutube || isSpotify) ? "border-red-500/50" : "border-[--border] focus:border-[--accent]"
                   )} 
                 />
                 {(isYoutube || isSpotify) && (
@@ -327,14 +327,14 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
             <div className="space-y-2">
               <div className="flex justify-between">
                 <InputLabel>Volume</InputLabel>
-                <span className="text-[10px] font-mono font-bold text-accent">{Math.round((config.volume ?? 1) * 100)}%</span>
+                <span className="text-[10px] font-mono font-bold text-[--accent]">{Math.round((config.volume ?? 1) * 100)}%</span>
               </div>
               <input 
                 type="range" 
                 min="0" max="1" step="0.1"
                 value={config.volume ?? 1}
                 onChange={e => onUpdate({ volume: parseFloat(e.target.value) })}
-                className="w-full accent-accent h-1 rounded-full bg-border-default appearance-none cursor-pointer"
+                className="w-full accent-[--accent] h-1 rounded-full bg-[--border] appearance-none cursor-pointer"
               />
             </div>
             <div className="flex flex-col justify-end pb-1">
@@ -346,10 +346,10 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
                     onChange={(e) => onUpdate({ loop: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-7 h-4 bg-border-default rounded-full peer peer-checked:bg-accent transition-all" />
+                  <div className="w-7 h-4 bg-[--border] rounded-full peer peer-checked:bg-[--accent] transition-all" />
                   <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-3" />
                 </div>
-                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider group-hover:text-text-primary transition-colors">Loop</span>
+                <span className="text-[10px] font-bold text-[--text-3] uppercase tracking-wider group-hover:text-[--text-1] transition-colors">Loop</span>
               </label>
             </div>
           </div>
@@ -367,7 +367,7 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
               placeholder="Component Details" 
               value={config.title} 
               onChange={e => onUpdate({ title: e.target.value })} 
-              className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent transition-all" 
+              className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-3 text-sm text-[--text-1] outline-none focus:border-[--accent] transition-all" 
             />
           </div>
           <div>
@@ -376,7 +376,7 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
               placeholder="Enter detailed information here..." 
               value={config.body} 
               onChange={e => onUpdate({ body: e.target.value })} 
-              className="w-full h-24 bg-bg-primary rounded-lg border border-border-default p-3 text-sm text-text-primary outline-none resize-none focus:border-accent transition-all leading-relaxed" 
+              className="w-full h-24 bg-[--surface-raised] rounded-lg border border-[--border] p-3 text-sm text-[--text-1] outline-none resize-none focus:border-[--accent] transition-all leading-relaxed" 
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -402,22 +402,22 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
               value={config.url || "https://"} 
               placeholder="https://" 
               onChange={e => onUpdate({ url: e.target.value })} 
-              className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 pl-9 text-sm text-text-primary outline-none focus:border-accent transition-all" 
+              className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-3 pl-9 text-sm text-[--text-1] outline-none focus:border-[--accent] transition-all" 
             />
-            <ExternalLink className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+            <ExternalLink className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[--text-3]" />
           </div>
         </div>
       );
 
     case "toggle":
       return (
-        <div className="space-y-6 mt-2 p-4 bg-bg-secondary/40 rounded-xl border border-border-default shadow-inner">
+        <div className="space-y-6 mt-2 p-4 bg-[--bg]/40 rounded-xl border border-[--border] shadow-inner">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full bg-accent" />
-               <span className="text-[11px] font-medium text-text-primary">State: Active</span>
+               <div className="w-2 h-2 rounded-full bg-[--accent]" />
+               <span className="text-[11px] font-medium text-[--text-1]">State: Active</span>
             </div>
-            <div className="bg-bg-primary/50 rounded-xl border border-border-default overflow-hidden">
+            <div className="bg-[--surface]/50 rounded-xl border border-[--border] overflow-hidden">
               <ActionStack 
                 interactionId={interactionId}
                 actions={config.states?.on || []}
@@ -429,10 +429,10 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
 
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full bg-text-tertiary" />
-               <span className="text-[11px] font-medium text-text-secondary">State: Inactive</span>
+               <div className="w-2 h-2 rounded-full bg-[--text-3]" />
+               <span className="text-[11px] font-medium text-[--text-3]">State: Inactive</span>
             </div>
-            <div className="bg-bg-primary/50 rounded-xl border border-border-default overflow-hidden">
+            <div className="bg-[--surface]/50 rounded-xl border border-[--border] overflow-hidden">
               <ActionStack 
                 interactionId={interactionId}
                 actions={config.states?.off || []}
@@ -462,17 +462,17 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
           <div className="grid grid-cols-3 gap-3">
             <div>
               <InputLabel>Roughness</InputLabel>
-              <input type="number" step="0.1" min="0" max="1" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all text-center" value={config.roughness ?? 0.5} onChange={e => onUpdate({ roughness: parseFloat(e.target.value) })} />
+              <input type="number" step="0.1" min="0" max="1" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm px-3 text-[--text-1] outline-none focus:border-[--accent] transition-all text-center" value={config.roughness ?? 0.5} onChange={e => onUpdate({ roughness: parseFloat(e.target.value) })} />
             </div>
             <div>
               <InputLabel>Metalness</InputLabel>
-              <input type="number" step="0.1" min="0" max="1" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all text-center" value={config.metalness ?? 0.8} onChange={e => onUpdate({ metalness: parseFloat(e.target.value) })} />
+              <input type="number" step="0.1" min="0" max="1" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm px-3 text-[--text-1] outline-none focus:border-[--accent] transition-all text-center" value={config.metalness ?? 0.8} onChange={e => onUpdate({ metalness: parseFloat(e.target.value) })} />
             </div>
             <div>
               <InputLabel>Duration</InputLabel>
               <div className="relative flex items-center">
-                <input type="number" step="0.05" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" value={config.duration ?? 0.3} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
-                <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+                <input type="number" step="0.05" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm pl-3 pr-7 text-[--text-1] outline-none focus:border-[--accent] transition-all leading-none py-0" value={config.duration ?? 0.3} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
+                <span className="absolute right-3 text-[10px] text-[--text-3] font-bold pointer-events-none uppercase tracking-tighter">sec</span>
               </div>
             </div>
           </div>
@@ -484,12 +484,12 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
         <div className="space-y-4">
           <div>
             <InputLabel>Label Text</InputLabel>
-            <input type="text" placeholder="Enter label text..." value={config.text || ""} onChange={e => onUpdate({ text: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent transition-all" />
+            <input type="text" placeholder="Enter label text..." value={config.text || ""} onChange={e => onUpdate({ text: e.target.value })} className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-3 text-sm text-[--text-1] outline-none focus:border-[--accent] transition-all" />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <InputLabel>Font Size</InputLabel>
-              <input type="number" min="8" max="32" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all text-center" value={config.fontSize ?? 14} onChange={e => onUpdate({ fontSize: parseInt(e.target.value) })} />
+              <input type="number" min="8" max="32" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm px-3 text-[--text-1] outline-none focus:border-[--accent] transition-all text-center" value={config.fontSize ?? 14} onChange={e => onUpdate({ fontSize: parseInt(e.target.value) })} />
             </div>
             <div>
               <InputLabel>Background</InputLabel>
@@ -501,12 +501,12 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
             <div>
               <InputLabel>Position</InputLabel>
               <div className="relative">
-                <select value={config.position || "top"} onChange={e => onUpdate({ position: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-2 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer">
+                <select value={config.position || "top"} onChange={e => onUpdate({ position: e.target.value })} className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-2 text-sm text-[--text-1] outline-none focus:border-[--accent] appearance-none transition-all cursor-pointer">
                   <option value="top">Top</option>
                   <option value="right">Right</option>
                   <option value="left">Left</option>
                 </select>
-                <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
+                <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[--text-3]" />
               </div>
             </div>
           </div>
@@ -519,12 +519,12 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
           <div className="grid grid-cols-2 gap-4">
             <div>
               <InputLabel>Particle Count</InputLabel>
-              <input type="number" min="5" max="100" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all" value={config.count ?? 20} onChange={e => onUpdate({ count: parseInt(e.target.value) })} />
+              <input type="number" min="5" max="100" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm px-3 text-[--text-1] outline-none focus:border-[--accent] transition-all" value={config.count ?? 20} onChange={e => onUpdate({ count: parseInt(e.target.value) })} />
             </div>
             <div>
               <InputLabel>Color</InputLabel>
               <ColorPicker 
-                color={config.color || "#10b981"} 
+                color={config.color || "#F59E0B"} 
                 onChange={(newColor, noHistory) => onUpdate({ color: newColor }, noHistory)} 
               />
             </div>
@@ -532,13 +532,13 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
           <div className="grid grid-cols-2 gap-4">
             <div>
               <InputLabel>Particle Size</InputLabel>
-              <input type="number" step="0.01" min="0.01" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all" value={config.size ?? 0.05} onChange={e => onUpdate({ size: parseFloat(e.target.value) })} />
+              <input type="number" step="0.01" min="0.01" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm px-3 text-[--text-1] outline-none focus:border-[--accent] transition-all" value={config.size ?? 0.05} onChange={e => onUpdate({ size: parseFloat(e.target.value) })} />
             </div>
             <div>
               <InputLabel>Duration</InputLabel>
               <div className="relative flex items-center">
-                <input type="number" step="0.1" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" value={config.duration ?? 1.0} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
-                <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+                <input type="number" step="0.1" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm pl-3 pr-7 text-[--text-1] outline-none focus:border-[--accent] transition-all leading-none py-0" value={config.duration ?? 1.0} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
+                <span className="absolute right-3 text-[10px] text-[--text-3] font-bold pointer-events-none uppercase tracking-tighter">sec</span>
               </div>
             </div>
           </div>
@@ -550,25 +550,25 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
         <div className="space-y-4">
           <div>
             <InputLabel>Target Mesh Name</InputLabel>
-            <input type="text" placeholder="Enter mesh name to reveal..." value={config.targetMeshName || ""} onChange={e => onUpdate({ targetMeshName: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent transition-all" />
+            <input type="text" placeholder="Enter mesh name to reveal..." value={config.targetMeshName || ""} onChange={e => onUpdate({ targetMeshName: e.target.value })} className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-3 text-sm text-[--text-1] outline-none focus:border-[--accent] transition-all" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <InputLabel>Animation Type</InputLabel>
               <div className="relative">
-                <select value={config.animationType || "fade"} onChange={e => onUpdate({ animationType: e.target.value })} className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer">
+                <select value={config.animationType || "fade"} onChange={e => onUpdate({ animationType: e.target.value })} className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-3 text-sm text-[--text-1] outline-none focus:border-[--accent] appearance-none transition-all cursor-pointer">
                   <option value="fade">Fade In</option>
                   <option value="scale_in">Scale In</option>
                   <option value="slide_up">Slide Up</option>
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
+                <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[--text-3]" />
               </div>
             </div>
             <div>
               <InputLabel>Duration</InputLabel>
               <div className="relative flex items-center">
-                <input type="number" step="0.05" className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" value={config.duration ?? 0.4} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
-                <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+                <input type="number" step="0.05" className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] text-sm pl-3 pr-7 text-[--text-1] outline-none focus:border-[--accent] transition-all leading-none py-0" value={config.duration ?? 0.4} onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} />
+                <span className="absolute right-3 text-[10px] text-[--text-3] font-bold pointer-events-none uppercase tracking-tighter">sec</span>
               </div>
             </div>
           </div>
@@ -583,7 +583,7 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
             <select 
               value={config.preset || "city"} 
               onChange={e => onUpdate({ preset: e.target.value })}
-              className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer"
+              className="w-full h-9 bg-[--surface-raised] rounded-lg border border-[--border] px-3 text-sm text-[--text-1] outline-none focus:border-[--accent] appearance-none transition-all cursor-pointer"
             >
               <option value="city">City</option>
               <option value="sunset">Sunset</option>
@@ -592,7 +592,7 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
               <option value="forest">Forest</option>
               <option value="studio">Studio</option>
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
+            <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[--text-3]" />
           </div>
         </div>
       );

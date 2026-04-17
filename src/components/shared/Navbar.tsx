@@ -18,7 +18,7 @@ const Logo = () => (
       viewBox="0 0 24 24" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      className="text-accent group-hover:scale-110 transition-transform duration-300"
+      className="text-[--accent] group-hover:scale-110 transition-transform duration-300"
     >
       <path 
         d="M12 2L4 12L12 22L20 12L12 2Z" 
@@ -29,7 +29,7 @@ const Logo = () => (
       />
       <circle cx="12" cy="12" r="3" fill="currentColor" />
     </svg>
-    <span className="text-xl font-semibold tracking-tight text-text-primary">
+    <span className="text-xl font-semibold tracking-tight text-[--text-1]">
       Vorld
     </span>
   </div>
@@ -64,7 +64,7 @@ export function Navbar() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-150 border-b",
         isScrolled 
-          ? "bg-bg-primary/80 backdrop-blur-xl border-border-default shadow-sm" 
+          ? "bg-[--bg]/80 backdrop-blur-xl border-[--border] shadow-sm" 
           : "bg-transparent border-transparent"
       )}
     >
@@ -80,7 +80,7 @@ export function Navbar() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-150"
+              className="text-sm font-medium text-[--text-2] hover:text-[--text-1] transition-colors duration-150"
             >
               {link.label}
             </Link>
@@ -92,7 +92,7 @@ export function Navbar() {
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-md hover:bg-bg-secondary text-text-secondary hover:text-text-primary transition-colors"
+              className="p-2 rounded-md hover:bg-[--surface-raised] text-[--text-2] hover:text-[--text-1] transition-colors"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -100,13 +100,13 @@ export function Navbar() {
           )}
           <Link
             href="/login"
-            className="text-sm font-medium text-text-secondary hover:text-text-primary px-3 py-2 transition-colors duration-150"
+            className="text-sm font-medium text-[--text-2] hover:text-[--text-1] px-3 py-2 transition-colors duration-150"
           >
             Login
           </Link>
           <Link
             href="/signup"
-            className="group inline-flex items-center justify-center gap-1.5 px-4 h-9 bg-accent hover:filter hover:brightness-110 text-white text-sm font-medium rounded-md transition-all duration-150 active:scale-95 shadow-sm"
+            className="group inline-flex items-center justify-center gap-1.5 px-4 h-9 bg-[--accent] hover:brightness-110 text-[--accent-fg] text-sm font-semibold rounded-md transition-all duration-150 active:scale-95 shadow-sm"
           >
             Get started
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-150" />

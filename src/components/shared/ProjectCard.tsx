@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { MoreVertical, ExternalLink, Edit2, BarChart2, Trash2, Globe, Lock, Loader2 } from "lucide-react";
+import { MoreVertical, ExternalLink, Edit2, BarChart2, Trash2, Globe, Lock, Loader2, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThumbnailUploadModal } from "./ThumbnailUploadModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
   const supabase = createClient();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isThumbModalOpen, setIsThumbModalOpen] = useState(false);
 
   const toggleVisibility = async () => {
     setIsUpdating(true);
@@ -101,10 +103,10 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
-      className="group flex flex-col rounded-2xl bg-bg-secondary/50 border border-border-default/50 hover:border-accent/40 overflow-hidden transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1"
+      className="group flex flex-col rounded-2xl bg-[--surface] border border-[--border] hover:border-[--accent-border] overflow-hidden transition-all duration-300 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
     >
       {/* Thumbnail Area */}
-      <div className="relative aspect-video bg-bg-primary overflow-hidden">
+      <div className="relative aspect-video bg-[--bg] overflow-hidden">
         {project.thumbnail_url ? (
           <img 
             src={project.thumbnail_url} 
@@ -112,20 +114,15 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-bg-primary to-bg-secondary relative overflow-hidden">
-             {/* Studio grid pattern */}
-             <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
-               <defs>
-                 <pattern id={`grid-${project.id}`} width="24" height="24" patternUnits="userSpaceOnUse">
-                   <path d="M 24 0 L 0 0 0 24" fill="none" stroke="currentColor" strokeWidth="1"/>
-                 </pattern>
-               </defs>
-               <rect width="100%" height="100%" fill={`url(#grid-${project.id})`} className="text-text-primary" />
-             </svg>
-             {/* Perspective fade */}
-             <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-transparent to-transparent opacity-60" />
-             <div className="relative z-10 w-12 h-12 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-accent/30 group-hover:text-accent/60 group-hover:scale-110 transition-all duration-500">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition-transform duration-500 text-accent">
+          <div 
+            className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[--surface] to-[--surface-raised] relative overflow-hidden"
+            style={{ 
+              backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+              backgroundSize: '24px 24px'
+            }}
+          >
+             <div className="relative z-10 w-12 h-12 rounded-xl bg-[--accent-subtle] border border-[--accent-border] flex items-center justify-center text-[--accent] group-hover:scale-110 transition-all duration-500">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition-transform duration-500">
                    <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                    <circle cx="12" cy="12" r="3" fill="currentColor" />
                 </svg>
@@ -137,10 +134,9 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-3 z-10 pointer-events-none group-hover:pointer-events-auto">
            <Link 
              href={`/editor/${project.id}`}
-             className="h-10 px-6 bg-white text-black text-sm font-semibold rounded-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-2xl"
+             className="h-10 px-6 bg-[--accent] text-[--accent-fg] text-sm font-semibold rounded-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-2xl"
            >
               Edit Project
-              <Edit2 className="w-3.5 h-3.5" />
            </Link>
         </div>
 
@@ -152,8 +148,8 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
              className={cn(
                "px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-2 backdrop-blur-xl transition-all active:scale-95 disabled:opacity-50 border",
                project.is_public 
-                 ? "bg-accent/10 text-accent border-accent/20" 
-                 : "bg-bg-primary/80 text-text-secondary border-border-default"
+                 ? "bg-[--green-subtle] text-[--green] border-[--green]/20" 
+                 : "bg-[--surface-raised] text-[--text-3] border-[--border]"
              )}
            >
              {isUpdating ? (
@@ -161,7 +157,7 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
              ) : (
                project.is_public ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />
              )}
-             {project.is_public ? 'Public' : 'Private'}
+             {project.is_public ? 'Published' : 'Private'}
            </button>
         </div>
       </div>
@@ -169,17 +165,17 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
       {/* Content Area - Removed "ugly lines" (borders) */}
       <div className="p-5 flex items-center justify-between">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-text-primary truncate">{project.name}</h3>
-          <p className="text-[11px] text-text-tertiary mt-1 font-medium">Updated {updatedAtLabel}</p>
+          <h3 className="text-sm font-semibold text-[--text-1] truncate">{project.name}</h3>
+          <p className="text-[11px] text-[--text-3] mt-1 font-medium">Updated {updatedAtLabel}</p>
         </div>
 
         <DropdownMenu>
            <DropdownMenuTrigger asChild>
-              <button className="p-2 rounded-xl hover:bg-bg-primary text-text-tertiary hover:text-text-primary transition-all">
+              <button className="p-2 rounded-xl hover:bg-[--surface-raised] text-[--text-3] hover:text-[--text-1] transition-all">
                  <MoreVertical className="w-4 h-4" />
               </button>
            </DropdownMenuTrigger>
-           <DropdownMenuContent align="end" className="w-56 bg-bg-primary/95 backdrop-blur-2xl border-white/5 shadow-2xl p-1 rounded-xl">
+           <DropdownMenuContent align="end" className="w-56 bg-[--surface]/95 backdrop-blur-2xl border-[--border] shadow-2xl p-1 rounded-xl">
               <DropdownMenuItem asChild className="rounded-lg">
                 <Link href={`/editor/${project.id}`} className="text-xs font-semibold gap-3 cursor-pointer py-2.5">
                    <Edit2 className="w-4 h-4" /> Edit project
@@ -188,6 +184,9 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
               <DropdownMenuItem className="text-xs font-semibold gap-3 cursor-pointer py-2.5 rounded-lg" onClick={toggleVisibility}>
                  {project.is_public ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
                  Make {project.is_public ? 'Private' : 'Public'}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-xs font-semibold gap-3 cursor-pointer py-2.5 rounded-lg" onClick={() => setIsThumbModalOpen(true)}>
+                 <ImageIcon className="w-4 h-4" /> Change thumbnail
               </DropdownMenuItem>
               <DropdownMenuItem className="text-xs font-semibold gap-3 cursor-pointer py-2.5 rounded-lg">
                  <BarChart2 className="w-4 h-4" /> Analytics
@@ -202,6 +201,13 @@ export function ProjectCard({ project, onDelete, onUpdate }: ProjectCardProps) {
            </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ThumbnailUploadModal 
+        projectId={project.id}
+        isOpen={isThumbModalOpen}
+        onOpenChange={setIsThumbModalOpen}
+        onUpdate={(url) => onUpdate?.({ ...project, thumbnail_url: url })}
+      />
     </motion.div>
   );
 }

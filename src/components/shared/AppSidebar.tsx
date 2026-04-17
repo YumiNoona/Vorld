@@ -82,24 +82,24 @@ export function AppSidebar() {
       initial={false}
       animate={{ width: isCollapsed ? 64 : 240 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="relative flex flex-col h-screen bg-background border-r border-border-primary z-40"
+      className="relative flex flex-col h-screen bg-[--bg] border-r border-[--border] z-40"
     >
       {/* Header / Logo */}
       <div className={cn(
-        "h-14 flex items-center border-b border-border-primary px-4 shrink-0",
+        "h-14 flex items-center border-b border-[--border] px-4 shrink-0",
         isCollapsed ? "justify-center" : "justify-between"
       )}>
         {!isCollapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 group">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-accent">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[--accent]">
               <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="12" cy="12" r="3" fill="currentColor" />
             </svg>
-            <span className="text-xl font-bold tracking-tight text-white group-hover:text-accent transition-colors">Vorld</span>
+            <span className="text-xl font-bold tracking-tight text-[--text-1] group-hover:text-[--accent] transition-colors">Vorld</span>
           </Link>
         )}
         {isCollapsed && (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-accent">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[--accent]">
             <path d="M12 2L4 12L12 22L20 12L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx="12" cy="12" r="3" fill="currentColor" />
           </svg>
@@ -108,7 +108,7 @@ export function AppSidebar() {
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={cn(
-            "p-1 rounded-md hover:bg-background-elevated text-text-tertiary transition-colors",
+            "p-1 rounded-md hover:bg-[--surface-raised] text-[--text-3] transition-colors",
             isCollapsed && "hidden xl:block"
           )}
         >
@@ -118,8 +118,8 @@ export function AppSidebar() {
 
       {/* User Info */}
       {!isCollapsed && (
-         <div className="p-4 flex items-center gap-3 border-b border-border-primary/50">
-          <div className="w-8 h-8 rounded-full bg-background-elevated flex items-center justify-center text-accent ring-1 ring-border-primary overflow-hidden">
+         <div className="p-4 flex items-center gap-3 border-b border-[--border]">
+          <div className="w-8 h-8 rounded-full bg-[--surface-raised] flex items-center justify-center text-[--accent] ring-1 ring-[--border] overflow-hidden shadow-sm">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
@@ -127,10 +127,10 @@ export function AppSidebar() {
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium text-text-primary truncate">
+            <span className="text-sm font-medium text-[--text-1] truncate">
               {profile?.full_name || "New User"}
             </span>
-            <span className="text-[10px] uppercase font-bold text-accent tracking-widest truncate">
+            <span className="text-[10px] uppercase font-bold text-[--accent] tracking-widest truncate">
               {profile?.email?.split('@')[0] || "User"}
             </span>
           </div>
@@ -149,8 +149,8 @@ export function AppSidebar() {
                 "group flex items-center gap-3 h-9 rounded-md text-sm font-medium transition-all duration-150 relative",
                 isCollapsed ? "justify-center" : "px-3",
                 isActive 
-                  ? "bg-accent-subtle text-accent" 
-                  : "text-text-secondary hover:bg-background-elevated hover:text-text-primary"
+                  ? "bg-[--accent-subtle] text-[--accent]" 
+                  : "text-[--text-2] hover:bg-[--surface-raised] hover:text-[--text-1]"
               )}
             >
               <item.icon className={cn("w-4 h-4 shrink-0 transition-transform", !isCollapsed && isActive && "scale-110")} />
@@ -160,11 +160,11 @@ export function AppSidebar() {
               {isActive && !isCollapsed && (
                 <motion.div
                   layoutId="sidebar-active"
-                  className="absolute left-0 w-0.5 h-4 bg-accent rounded-full"
+                  className="absolute left-0 w-0.5 h-4 bg-[--accent] rounded-full"
                 />
               )}
               {isCollapsed && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-background-overlay border border-border-primary rounded text-xs text-white opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-[--surface-raised] border border-[--border] rounded-lg text-[11px] font-bold text-[--text-1] uppercase tracking-wider opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-x-1 group-hover:translate-x-0 shadow-2xl z-50">
                   {item.label}
                 </div>
               )}
@@ -174,9 +174,9 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom Actions */}
-      <div className="p-3 space-y-1 border-t border-border-primary shrink-0">
+      <div className="p-3 space-y-1 border-t border-[--border] shrink-0">
         <button className={cn(
-          "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-text-secondary hover:bg-background-elevated hover:text-text-primary transition-all",
+          "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-[--text-2] hover:bg-[--surface-raised] hover:text-[--text-1] transition-all",
           isCollapsed ? "justify-center" : "px-3"
         )}>
           <HelpCircle className="w-4 h-4 shrink-0" />
@@ -185,7 +185,7 @@ export function AppSidebar() {
         <button 
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className={cn(
-            "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-text-secondary hover:bg-background-elevated hover:text-text-primary transition-all",
+            "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-[--text-2] hover:bg-[--surface-raised] hover:text-[--text-1] transition-all",
             isCollapsed ? "justify-center" : "px-3"
           )}
         >
@@ -204,7 +204,7 @@ export function AppSidebar() {
          <button 
           onClick={handleSignOut}
           className={cn(
-            "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-destructive hover:bg-destructive-subtle/10 transition-all",
+            "w-full flex items-center gap-3 h-9 rounded-md text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all",
             isCollapsed ? "justify-center" : "px-3"
           )}
         >

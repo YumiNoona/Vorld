@@ -449,7 +449,7 @@ export function useInteractionRuntime() {
               case "particle_burst": {
                 const count = Math.min(config.count ?? 20, 50);
                 const pSize = config.size ?? 0.05;
-                const color = config.color || "#10b981";
+                const color = config.color || "#F59E0B";
                 const origin = state.worldCenter.clone();
 
                 const positions = new Float32Array(count * 3);

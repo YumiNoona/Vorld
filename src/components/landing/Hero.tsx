@@ -50,13 +50,13 @@ function AmbientOrb() {
     <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
       <Sphere ref={meshRef} args={[1, 64, 64]} scale={2.4}>
         <MeshDistortMaterial
-          color="#7c6aff"
+          color="#F59E0B"
           speed={3}
           distort={0.4}
           radius={1}
           metalness={0.6}
           roughness={0.2}
-          emissive="#7c6aff"
+          emissive="#F59E0B"
           emissiveIntensity={0.2}
         />
       </Sphere>
@@ -74,7 +74,7 @@ export function Hero() {
       {/* Background Effects: Soft Emerald Glow at Top */}
       <motion.div 
         style={{ opacity }}
-        className="absolute top-0 inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(16,185,129,0.08),transparent)]"
+        className="absolute top-0 inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(245,158,11,0.08),transparent)]"
       />
       
       {/* 3D Orb Background */}
@@ -95,12 +95,12 @@ export function Hero() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-subtle border border-accent-border mb-8 cursor-default"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[--accent-subtle] border border-[--accent-border] mb-8 cursor-default"
         >
-          <span className="text-xs font-medium text-accent tracking-wide">
-            Introducing Venus
+          <span className="text-xs font-medium text-[--accent] tracking-wide">
+            Introducing Vorld 2.0
           </span>
-          <ArrowRight className="w-3 h-3 text-accent" />
+          <ArrowRight className="w-3 h-3 text-[--accent]" />
         </motion.div>
 
         {/* H1 Heading */}
@@ -108,7 +108,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-          className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.04em] text-white leading-[1.1] mb-8"
+          className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.04em] text-[--text-1] leading-[1.1] mb-8"
         >
           Turn 3D models into <br />
           <span className="relative">
@@ -122,7 +122,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-          className="text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed mb-12"
+          className="text-lg sm:text-xl text-[--text-2] max-w-2xl mx-auto leading-relaxed mb-12"
         >
           Experience the new standard in 3D web development. Vorld gives you the power to create, 
           host, and share interactive 3D experiences in minutes.
@@ -137,12 +137,12 @@ export function Hero() {
         >
           <Link
             href="/signup"
-            className="group w-full sm:w-auto h-12 px-8 flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.97]"
+            className="group w-full sm:w-auto h-12 px-8 flex items-center justify-center gap-2 bg-[--accent] hover:brightness-110 text-[--accent-fg] font-medium rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.97]"
           >
             Get started free
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
           </Link>
-          <button className="w-full sm:w-auto h-12 px-8 flex items-center justify-center gap-2 bg-background-elevated hover:bg-background-overlay text-text-primary font-medium rounded-lg transition-all duration-200 border border-border-primary hover:border-border-strong">
+          <button className="w-full sm:w-auto h-12 px-8 flex items-center justify-center gap-2 bg-[--surface] hover:bg-[--surface-raised] text-[--text-1] font-medium rounded-lg transition-all duration-200 border border-[--border-strong] hover:border-[--text-3]">
             <Play className="w-4 h-4 fill-current" />
             Watch demo
           </button>
@@ -153,14 +153,14 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-20 text-xs font-medium text-text-tertiary uppercase tracking-widest"
+          className="mt-20 text-xs font-medium text-[--text-3] uppercase tracking-widest"
         >
           Trusted by 2,400+ designers, architects, and developers
         </motion.p>
       </div>
 
       {/* Hero Bottom Mask: Deep, smooth blend into the next section */}
-      <div className="absolute -bottom-1 inset-x-0 h-64 bg-gradient-to-t from-bg-primary via-bg-primary/50 to-transparent pointer-events-none z-20" />
+      <div className="absolute -bottom-1 inset-x-0 h-64 bg-gradient-to-t from-[--bg] via-[--bg]/50 to-transparent pointer-events-none z-20" />
     </section>
   );
 }

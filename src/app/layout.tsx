@@ -1,16 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist, Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import "./globals.css";
 
-const outfit = Outfit({
+const geist = Geist({
   variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const inter = Inter({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
@@ -18,8 +18,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#fafaf9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0c0c" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -62,13 +62,14 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${outfit.variable} ${plusJakartaSans.variable} selection:bg-accent/30 selection:text-accent-foreground`}
+      className={`${geist.variable} ${inter.variable} dark`}
+      style={{ colorScheme: 'dark' }}
     >
-      <body className="min-h-screen bg-background font-body text-text-primary antialiased">
+      <body className="min-h-screen bg-[--bg] font-body text-[--text-1] antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          enableSystem
+          enableSystem={false}
           disableTransitionOnChange
         >
           {children}

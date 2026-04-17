@@ -16,7 +16,8 @@ import {
   Loader2,
   FileBox,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Image as ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -110,6 +111,8 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [thumbnailStatus, setThumbnailStatus] = useState<string | null>(null);
+  const [customThumbnail, setCustomThumbnail] = useState<File | null>(null);
+  const [customThumbnailPreview, setCustomThumbnailPreview] = useState<string | null>(null);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -214,10 +217,23 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
           .eq('id', user.id)
       ]);
 
-      // 5. Thumbnail Generation (never blocks project creation)
-      setThumbnailStatus("Generating preview…");
+      // 5. Thumbnail Generation / Custom Upload
+      setThumbnailStatus(customThumbnail ? "Uploading thumbnail..." : "Generating preview...");
       try {
-        const thumbnailUrl = await generateThumbnail(file, project.id, user.id, supabase);
+        let thumbnailUrl = null;
+        if (customThumbnail) {
+          const thumbPath = `thumbnails/${project.id}.${customThumbnail.name.split('.').pop()}`;
+          const { error: thumbUploadErr } = await supabase.storage
+            .from("thumbnails")
+            .upload(thumbPath, customThumbnail, { upsert: true });
+          
+          if (!thumbUploadErr) {
+            thumbnailUrl = supabase.storage.from("thumbnails").getPublicUrl(thumbPath).data.publicUrl;
+          }
+        } else {
+          thumbnailUrl = await generateThumbnail(file, project.id, user.id, supabase);
+        }
+
         if (thumbnailUrl) {
           await supabase
             .from('projects')
@@ -225,7 +241,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
             .eq('id', project.id);
         }
       } catch (thumbErr) {
-        console.warn("Thumbnail generation failed, continuing...", thumbErr);
+        console.warn("Thumbnail handling failed, continuing...", thumbErr);
       }
       setThumbnailStatus(null);
 
@@ -238,7 +254,10 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
   };
 
   return (
-    <Dialog onOpenChange={() => { setStep(1); setFile(null); setUploadProgress(0); setName(""); setDescription(""); setIsProcessing(false); setThumbnailStatus(null); }}>
+    <Dialog onOpenChange={() => { 
+      setStep(1); setFile(null); setUploadProgress(0); setName(""); setDescription(""); 
+      setIsProcessing(false); setThumbnailStatus(null); setCustomThumbnail(null); setCustomThumbnailPreview(null); 
+    }}>
       <DialogTrigger asChild>
         {children || (
           <button className="h-10 px-4 flex items-center gap-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg shadow-lg active:scale-95 transition-all">
@@ -249,7 +268,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
       </DialogTrigger>
       
       {/* Contrast Glass Styling Applied Below */}
-      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[#0f172a]/60 backdrop-blur-[20px] saturate-[140%] border-white/10 sm:rounded-2xl shadow-2xl">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[--bg]/60 backdrop-blur-[20px] saturate-[140%] border-[--border] sm:rounded-2xl shadow-2xl">
         <DialogHeader>
           <DialogTitle className="sr-only">New Project</DialogTitle>
         </DialogHeader>
@@ -266,8 +285,8 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                   className="space-y-6"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Select your assets</h2>
-                    <p className="text-sm text-slate-300">Choose a 3D model to begin your creation journey.</p>
+                    <h2 className="text-xl font-bold text-[--text-1] tracking-tight">Select your assets</h2>
+                    <p className="text-sm text-[--text-2]">Choose a 3D model to begin your creation journey.</p>
                   </div>
 
                   {/* Drop Zone */}
@@ -277,18 +296,18 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                     className={cn(
                       "group relative aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all duration-300",
                       file 
-                        ? "border-emerald-500/50 bg-emerald-500/5" 
-                        : "border-white/10 hover:border-accent/40 hover:bg-white/5 bg-black/20"
+                        ? "border-[--green]/50 bg-[--green-subtle]" 
+                        : "border-[--border] hover:border-[--accent]/40 hover:bg-white/5 bg-black/20"
                     )}
                   >
                     {!file && (
                       <>
-                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-slate-400 group-hover:text-accent group-hover:scale-110 transition-all duration-300">
+                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-[--text-3] group-hover:text-[--accent] group-hover:scale-110 transition-all duration-300">
                            <Upload className="w-7 h-7" />
                         </div>
                         <div className="text-center">
-                           <p className="text-sm font-semibold text-white tracking-tight">Drag & drop your file here</p>
-                           <p className="text-xs text-slate-400 mt-1 font-medium">.glb or .gltf (Max 100MB)</p>
+                           <p className="text-sm font-semibold text-[--text-1] tracking-tight">Drag & drop your file here</p>
+                           <p className="text-xs text-[--text-3] mt-1 font-medium">.glb or .gltf (Max 100MB)</p>
                         </div>
                         <input
                           type="file"
@@ -301,17 +320,17 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
 
                     {file && (
                       <div className="flex flex-col items-center gap-3">
-                         <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                         <div className="w-14 h-14 rounded-2xl bg-[--green-subtle] border border-[--green]/10 flex items-center justify-center text-[--green]">
                             <FileBox className="w-7 h-7" />
                          </div>
                          <div className="text-center">
-                            <p className="text-sm font-semibold text-white truncate max-w-[240px]">{file.name}</p>
-                            <p className="text-xs text-slate-400 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p className="text-sm font-semibold text-[--text-1] truncate max-w-[240px]">{file.name}</p>
+                            <p className="text-xs text-[--text-3] mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                          </div>
                          {!isProcessing && (
                            <button 
                              onClick={() => setFile(null)}
-                             className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest"
+                             className="text-xs font-bold text-[--text-3] hover:text-red-400 transition-colors uppercase tracking-widest"
                            >
                              Change File
                            </button>
@@ -324,7 +343,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                     <button
                       disabled={!file}
                       onClick={() => setStep(2)}
-                      className="h-11 px-8 bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-50 text-sm font-bold rounded-xl transition-all flex items-center gap-2 active:scale-95"
+                      className="h-11 px-8 bg-white text-black hover:bg-white/90 disabled:opacity-50 text-sm font-bold rounded-xl transition-all flex items-center gap-2 active:scale-95"
                     >
                       Continue
                       <ArrowRight className="w-4 h-4" />
@@ -340,29 +359,76 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                   className="space-y-6"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Project Details</h2>
-                    <p className="text-sm text-slate-300">Set the identity for your 3D experience.</p>
+                    <h2 className="text-xl font-bold text-[--text-1] tracking-tight">Project Details</h2>
+                    <p className="text-sm text-[--text-2]">Set the identity for your 3D experience.</p>
                   </div>
 
                   <div className="space-y-5">
                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Project Name</label>
+                        <label className="text-xs font-bold text-[--text-3] uppercase tracking-widest">Project Name</label>
                         <input
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="My Awesome Scene"
-                          className="w-full h-12 px-4 rounded-xl bg-black/30 border border-white/10 focus:border-accent/50 outline-none transition-all text-white placeholder:text-slate-600 font-medium"
+                          className="w-full h-12 px-4 rounded-xl bg-black/30 border border-white/10 focus:border-[--accent]/50 outline-none transition-all text-white placeholder:text-[--text-3] font-medium"
                         />
                      </div>
                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Description (Optional)</label>
+                        <label className="text-xs font-bold text-[--text-3] uppercase tracking-widest">Description (Optional)</label>
                         <textarea
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           placeholder="What is this project about?"
-                          className="w-full h-28 p-4 rounded-xl bg-black/30 border border-white/10 focus:border-accent/50 outline-none transition-all resize-none text-white placeholder:text-slate-600 font-medium"
+                          className="w-full h-28 p-4 rounded-xl bg-black/30 border border-white/10 focus:border-[--accent]/50 outline-none transition-all resize-none text-white placeholder:text-[--text-3] font-medium"
                         />
+                     </div>
+
+                     <div className="space-y-4">
+                        <label className="text-xs font-bold text-[--text-3] uppercase tracking-widest block">Project Thumbnail (Optional)</label>
+                        <div className="flex items-start gap-4">
+                           <div className="relative w-32 aspect-video rounded-xl bg-black/30 border border-white/10 overflow-hidden group/thumb flex items-center justify-center">
+                              {customThumbnailPreview ? (
+                                <img src={customThumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
+                              ) : (
+                                <ImageIcon className="w-5 h-5 text-[--text-3]" />
+                              )}
+                              {customThumbnailPreview && !isProcessing && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setCustomThumbnail(null); setCustomThumbnailPreview(null); }}
+                                  className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-all flex items-center justify-center text-white"
+                                >
+                                   <X className="w-4 h-4" />
+                                </button>
+                              )}
+                           </div>
+                           <div className="flex-1 space-y-2">
+                              <p className="text-[11px] text-[--text-3] font-medium leading-relaxed">
+                                Upload a custom image or let us auto-generate a preview from your model.
+                              </p>
+                              <label className={cn(
+                                "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer",
+                                isProcessing ? "opacity-50 pointer-events-none" : "hover:bg-white/5 border-[--border]"
+                              )}>
+                                 <Upload className="w-3.5 h-3.5" />
+                                 {customThumbnail ? "Change Image" : "Upload Custom"}
+                                 <input 
+                                   type="file" 
+                                   accept="image/*" 
+                                   className="hidden" 
+                                   onChange={(e) => {
+                                     const f = e.target.files?.[0];
+                                     if (f) {
+                                       setCustomThumbnail(f);
+                                       const reader = new FileReader();
+                                       reader.onloadend = () => setCustomThumbnailPreview(reader.result as string);
+                                       reader.readAsDataURL(f);
+                                     }
+                                   }}
+                                 />
+                              </label>
+                           </div>
+                        </div>
                      </div>
                   </div>
 
@@ -370,20 +436,20 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                     <div className="space-y-4">
                        <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                           <div className="flex flex-col gap-1">
-                            <span className="text-accent animate-pulse">
+                            <span className="text-[--accent] animate-pulse">
                               {thumbnailStatus ? thumbnailStatus : uploadProgress < 100 ? "Uploading Assets..." : "Finalizing Project..."}
                             </span>
                             {!thumbnailStatus && uploadProgress < 100 && file && (
-                              <span className="text-[10px] text-slate-500 font-medium normal-case">
+                              <span className="text-[10px] text-[--text-3] font-medium normal-case">
                                 Est. time: {Math.max(1, Math.ceil((file.size * (1 - uploadProgress/100)) / (500 * 1024)))}s remaining
                               </span>
                             )}
                           </div>
-                          {!thumbnailStatus && <span className="text-white">{uploadProgress}%</span>}
+                          {!thumbnailStatus && <span className="text-[--text-1]">{uploadProgress}%</span>}
                        </div>
                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
                           <motion.div 
-                            className="h-full bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                            className="h-full bg-[--accent] shadow-[0_0_15px_rgba(245,158,11,0.4)]"
                             initial={{ width: 0 }}
                             animate={{ width: thumbnailStatus ? '100%' : `${uploadProgress}%` }}
                           />
@@ -395,14 +461,14 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                     <button
                       disabled={isProcessing}
                       onClick={() => setStep(1)}
-                      className="text-xs font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-widest"
+                      className="text-xs font-bold text-[--text-3] hover:text-[--text-1] transition-colors uppercase tracking-widest"
                     >
                       Back
                     </button>
                     <button
                       disabled={isProcessing || !name.trim()}
                       onClick={handleProcess}
-                       className="h-11 px-8 bg-accent hover:brightness-110 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95"
+                       className="h-11 px-8 bg-[--accent] hover:brightness-110 disabled:opacity-50 text-[--accent-fg] text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95"
                     >
                       {isProcessing ? (
                         <div className="flex items-center gap-2">
@@ -421,25 +487,25 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
           <div className="hidden md:flex w-64 bg-black/40 border-l border-white/10 p-8 flex-col justify-between">
              <div className="space-y-8">
                <div className="space-y-4">
-                  <div className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/20 flex items-center justify-center text-accent">
+                  <div className="w-10 h-10 rounded-xl bg-[--accent-subtle] border border-[--accent-border] flex items-center justify-center text-[--accent]">
                      <Upload className="w-5 h-5" />
                   </div>
-                  <p className="text-xs font-bold text-slate-400 leading-relaxed uppercase tracking-wide">
+                  <p className="text-xs font-bold text-[--text-3] leading-relaxed uppercase tracking-wide">
                      Optimized Engine
                   </p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  <p className="text-[11px] text-[--text-3] opacity-70 leading-relaxed font-medium">
                      Your assets are automatically prepared for high-performance WebGL rendering.
                   </p>
                </div>
                
                <div className="space-y-4">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[--text-2]">
                      <CheckCircle2 className="w-5 h-5" />
                   </div>
-                  <p className="text-xs font-bold text-slate-400 leading-relaxed uppercase tracking-wide">
+                  <p className="text-xs font-bold text-[--text-3] leading-relaxed uppercase tracking-wide">
                      Selection System
                   </p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  <p className="text-[11px] text-[--text-3] opacity-70 leading-relaxed font-medium">
                      Use named groups in Blender to easily add interactions later.
                   </p>
                </div>
@@ -450,7 +516,7 @@ export function NewProjectModal({ children }: { children?: React.ReactNode }) {
                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Quota</span>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                <p className="text-[10px] text-[--text-3] leading-relaxed font-medium">
                    Free projects are limited to 100MB per file.
                 </p>
              </div>

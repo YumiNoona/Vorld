@@ -28,7 +28,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 sm:py-32 bg-background relative overflow-hidden">
+    <section id="how-it-works" className="py-24 sm:py-32 bg-[--bg] relative overflow-hidden">
       <div className="container max-w-7xl px-4 mx-auto text-center">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -37,10 +37,10 @@ export function HowItWorks() {
           transition={{ duration: 0.4 }}
           className="mb-16"
         >
-          <h2 className="text-3xl font-semibold tracking-tight text-white mb-4">
+          <h2 className="text-3xl font-semibold tracking-tight text-[--text-1] mb-4">
             How it works
           </h2>
-          <p className="text-text-secondary max-w-xl mx-auto">
+          <p className="text-[--text-2] max-w-xl mx-auto">
             From model to masterpiece in three simple steps.
           </p>
         </motion.div>
@@ -53,23 +53,23 @@ export function HowItWorks() {
                 whileInView={{ opacity: 1, scale: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="group relative flex flex-col items-center p-8 rounded-2xl bg-background-subtle border border-border-primary hover:border-border-strong transition-all duration-300"
+                className="group relative flex flex-col items-center p-8 rounded-2xl bg-[--surface] border border-[--border] hover:border-[--border-strong] transition-all duration-300"
               >
                 {/* Number Badge */}
-                <div className="absolute top-4 right-4 text-xs font-mono font-bold text-text-tertiary/20 group-hover:text-accent/20 transition-colors duration-300">
+                <div className="absolute top-4 right-4 text-xs font-mono font-bold text-[--text-3]/20 group-hover:text-[--accent]/20 transition-colors duration-300">
                   {step.number}
                 </div>
 
                 {/* Icon Container */}
-                <div className="w-12 h-12 rounded-xl bg-accent-subtle border border-accent-border flex items-center justify-center mb-6 text-accent group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 rounded-xl bg-[--accent-subtle] border border-[--accent-border] flex items-center justify-center mb-6 text-[--accent] group-hover:scale-110 transition-transform duration-300">
                   <step.icon className="w-6 h-6" />
                 </div>
 
                 {/* Content */}
-                <h3 className="text-xl font-medium text-white mb-3">
+                <h3 className="text-xl font-medium text-[--text-1] mb-3">
                   {step.title}
                 </h3>
-                <p className="text-sm text-text-secondary leading-relaxed">
+                <p className="text-sm text-[--text-2] leading-relaxed">
                   {step.description}
                 </p>
               </motion.div>
@@ -80,7 +80,7 @@ export function HowItWorks() {
                   {index === 0 && (
                      <div className="flex items-center gap-1">
                         <div className="w-8 h-[2px] bg-dashed-border bg-[length:8px_2px] bg-repeat-x" />
-                        <ChevronRight className="w-4 h-4 text-text-tertiary" />
+                        <ChevronRight className="w-4 h-4 text-[--text-3]" />
                      </div>
                   )}
                 </div>
@@ -89,7 +89,7 @@ export function HowItWorks() {
                 <div className="hidden md:flex items-center justify-center absolute left-[66.666%] top-1/2 -translate-y-1/2 -ml-6 z-20 pointer-events-none opacity-20">
                    <div className="flex items-center gap-1">
                       <div className="w-8 h-[2px] bg-dashed-border bg-[length:8px_2px] bg-repeat-x" />
-                      <ChevronRight className="w-4 h-4 text-text-tertiary" />
+                      <ChevronRight className="w-4 h-4 text-[--text-3]" />
                    </div>
                 </div>
               )}
@@ -100,7 +100,7 @@ export function HowItWorks() {
 
       <style jsx>{`
         .bg-dashed-border {
-          background-image: linear-gradient(to right, var(--text-tertiary) 40%, transparent 40%);
+          background-image: linear-gradient(to right, var(--text-3) 40%, transparent 40%);
         }
       `}</style>
     </section>

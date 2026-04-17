@@ -130,6 +130,10 @@ insert into storage.buckets (id, name, public)
 values ('models', 'models', false)
 on conflict do nothing;
 
+insert into storage.buckets (id, name, public)
+values ('thumbnails', 'thumbnails', true)
+on conflict do nothing;
+
 -- =========================
 -- STORAGE POLICIES
 -- =========================
@@ -192,6 +196,23 @@ using (
 bucket_id = 'models'
 and (storage.foldername(name))[1] = auth.uid()::text
 );
+
+-- THUMBNAILS
+create policy "thumbnails_select_public"
+on storage.objects for select
+using (bucket_id = 'thumbnails');
+
+create policy "thumbnails_insert_auth"
+on storage.objects for insert
+with check (bucket_id = 'thumbnails' and auth.role() = 'authenticated');
+
+create policy "thumbnails_update_auth"
+on storage.objects for update
+using (bucket_id = 'thumbnails' and auth.role() = 'authenticated');
+
+create policy "thumbnails_delete_auth"
+on storage.objects for delete
+using (bucket_id = 'thumbnails' and auth.role() = 'authenticated');
 
 -- =========================
 -- AUTH TRIGGER

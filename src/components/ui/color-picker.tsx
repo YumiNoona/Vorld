@@ -13,8 +13,8 @@ interface ColorPickerProps {
 }
 
 const PRESET_COLORS = [
-  "#10b981", "#3b82f6", "#ef4444", "#f59e0b", "#8b5cf6", "#ec4899",
-  "#ffffff", "#888888", "#333333", "#0b0f14", "#ff4081", "#795548"
+  "#F59E0B", "#FDBA74", "#EF4444", "#3B82F6", "#8B5CF6", "#EC4899",
+  "#FFFFFF", "#888888", "#333333", "#0C0C0C", "#FF4081", "#795548"
 ];
 
 // --- Utilities ---
@@ -130,7 +130,7 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
               setLocalColor(val);
               if (/^#[0-9A-Fa-f]{6}$/.test(val)) handleCommit(val);
             }}
-            className="bg-transparent text-xs font-mono text-text-primary outline-none uppercase flex-1"
+            className="bg-transparent text-xs font-mono text-[--text-1] outline-none uppercase flex-1"
             maxLength={6}
           />
         </div>
@@ -139,7 +139,7 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
     if (mode === "rgb") {
       const { r, g, b } = hexToRgb(localColor);
       return (
-        <div className="flex items-center gap-1 flex-1 text-[10px] font-mono text-text-primary">
+        <div className="flex items-center gap-1 flex-1 text-[10px] font-mono text-[--text-1]">
           <span>R {r}</span>
           <span className="opacity-30 mx-0.5">•</span>
           <span>G {g}</span>
@@ -151,7 +151,7 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
     if (mode === "hsl") {
       const { h, s, l } = hexToHsl(localColor);
       return (
-        <div className="flex items-center gap-1 flex-1 text-[10px] font-mono text-text-primary">
+        <div className="flex items-center gap-1 flex-1 text-[10px] font-mono text-[--text-1]">
           <span>H {h}°</span>
           <span className="opacity-30 mx-0.5">•</span>
           <span>S {s}%</span>
@@ -170,22 +170,22 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-3 bg-bg-primary border border-border-default h-9 px-3 rounded-lg hover:border-text-tertiary transition-all w-full group",
+            "flex items-center gap-3 bg-[--surface] border border-[--border] h-9 px-3 rounded-lg hover:border-[--text-3] transition-all w-full group",
             className
           )}
         >
           <div 
             className="w-4 h-4 rounded-full border border-black/10 ring-1 ring-white/10 shrink-0" 
-            style={{ backgroundColor: color || "#10b981" }} 
+            style={{ backgroundColor: color || "#F59E0B" }} 
           />
-          <span className="text-sm font-mono text-text-primary tracking-tight">
-            {(color || "#10B981").toUpperCase()}
+          <span className="text-sm font-mono text-[--text-1] tracking-tight">
+            {(color || "#F59E0B").toUpperCase()}
           </span>
-          <ChevronDown className="w-3 h-3 ml-auto text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ChevronDown className="w-3 h-3 ml-auto text-[--text-3] opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-64 p-0 overflow-hidden border-border-default bg-bg-primary shadow-2xl backdrop-blur-md bg-white/90 dark:bg-bg-primary/95">
+      <PopoverContent className="w-64 p-0 overflow-hidden border-[--border] bg-[--surface] shadow-2xl backdrop-blur-md">
         <div className="p-4 space-y-4">
           {/* Primary: Color Picker Area */}
           <div className="pro-color-picker">
@@ -195,22 +195,21 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
             />
           </div>
 
-          {/* Secondary: Utilities Row */}
-          <div className="flex items-center gap-2 p-2 bg-bg-secondary/50 rounded-lg border border-border-default">
+          <div className="flex items-center gap-2 p-2 bg-[--bg]/50 rounded-lg border border-[--border]">
             {/* EyeDropper */}
             <button 
               onClick={openEyeDropper}
               disabled={!isEyeDropperSupported}
               title={isEyeDropperSupported ? "Eye Dropper" : "Eye Dropper not supported in this browser"}
               className={cn(
-                "p-1.5 rounded hover:bg-bg-primary text-text-secondary hover:text-text-primary transition-all",
+                "p-1.5 rounded hover:bg-[--surface-raised] text-[--text-3] hover:text-[--text-1] transition-all",
                 !isEyeDropperSupported && "opacity-30 cursor-not-allowed"
               )}
             >
               <Pipette className="w-3.5 h-3.5" />
             </button>
             
-            <div className="w-px h-4 bg-border-default" />
+            <div className="w-px h-4 bg-[--border]" />
 
             {/* Mode Switcher + Display */}
             <button 
@@ -220,14 +219,14 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
               {renderInputs()}
             </button>
 
-            <div className="w-px h-4 bg-border-default" />
+            <div className="w-px h-4 bg-[--border]" />
 
             {/* Copy Button */}
             <button 
               onClick={copyToClipboard}
-              className="p-1.5 rounded hover:bg-bg-primary text-text-secondary hover:text-text-primary transition-all"
+              className="p-1.5 rounded hover:bg-[--surface-raised] text-[--text-3] hover:text-[--text-1] transition-all"
             >
-              {isCopied ? <Check className="w-3.5 h-3.5 text-accent" /> : <Copy className="w-3.5 h-3.5" />}
+              {isCopied ? <Check className="w-3.5 h-3.5 text-[--accent]" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           </div>
 
@@ -275,9 +274,9 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
 
         {/* Warning for Firefox/Safari if eyedropper missing */}
         {!isEyeDropperSupported && (
-          <div className="px-4 py-2 bg-blue-500/10 border-t border-border-default flex items-center gap-2">
-            <Info className="w-3 h-3 text-blue-500" />
-            <span className="text-[9px] font-medium text-blue-700">Pipette requires Chrome or Edge</span>
+          <div className="px-4 py-2 bg-amber-500/10 border-t border-[--border] flex items-center gap-2">
+            <Info className="w-3 h-3 text-amber-500" />
+            <span className="text-[9px] font-medium text-amber-500/70">Pipette requires Chrome or Edge</span>
           </div>
         )}
       </PopoverContent>

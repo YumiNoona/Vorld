@@ -31,13 +31,13 @@ export function MeshExplorer({ width, isCollapsed }: { width?: number, isCollaps
     <aside 
       style={panelStyle}
       className={cn(
-        "border-r border-border-default bg-bg-primary shrink-0 flex flex-col z-10 editor-panel-transition",
+        "border-r border-[--border] bg-[--surface] shrink-0 flex flex-col z-10 editor-panel-transition",
         isCollapsed ? "overflow-hidden border-none opacity-0" : "opacity-100"
       )}
     >
       {!modelUrl ? (
         <div className="flex-1 flex items-center justify-center p-6">
-          <Loader2 className="w-5 h-5 text-accent animate-spin" />
+          <Loader2 className="w-5 h-5 text-[--accent] animate-spin" />
         </div>
       ) : (
         <MeshList url={modelUrl} />
@@ -63,28 +63,28 @@ function MeshList({ url }: { url: string }) {
 
   return (
     <>
-      <div className="h-12 border-b border-border-default px-4 flex items-center justify-between shrink-0 bg-bg-secondary/10">
+      <div className="h-12 border-b border-[--border] px-4 flex items-center justify-between shrink-0 bg-[--bg]/10">
         {isSearching ? (
           <div className="flex-1 flex items-center gap-2 animate-in slide-in-from-right-2 duration-200">
-            <Search className="w-3.5 h-3.5 text-text-tertiary" />
+            <Search className="w-3.5 h-3.5 text-[--text-3]" />
             <input 
               autoFocus
               placeholder="Search meshes..."
-              className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-tertiary"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-[--text-1] placeholder:text-[--text-3]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && setIsSearching(false)}
             />
-            <button onClick={() => { setSearchQuery(""); setIsSearching(false); }} className="p-1 hover:bg-bg-secondary rounded-md">
-              <X className="w-3 h-3 text-text-tertiary" />
+            <button onClick={() => { setSearchQuery(""); setIsSearching(false); }} className="p-1 hover:bg-[--surface-raised] rounded-md transition-colors">
+              <X className="w-3 h-3 text-[--text-3]" />
             </button>
           </div>
         ) : (
           <>
-            <span className="text-sm font-semibold text-text-secondary tracking-tight">Scene Explorer</span>
+            <span className="text-sm font-semibold text-[--text-2] tracking-tight">Scene Explorer</span>
             <button 
               onClick={() => setIsSearching(true)}
-              className="p-1.5 rounded-md hover:bg-bg-secondary text-text-secondary hover:text-text-primary transition-colors"
+              className="p-1.5 rounded-md hover:bg-[--surface-raised] text-[--text-3] hover:text-[--text-1] transition-colors"
             >
               <Search className="w-3.5 h-3.5" />
             </button>
@@ -107,16 +107,16 @@ function MeshList({ url }: { url: string }) {
               className={cn(
                 "group flex items-center gap-3 h-9 w-full px-3 rounded-lg text-sm font-medium transition-all duration-150 active:scale-[0.98]",
                 isSelected 
-                  ? "bg-accent/10 text-accent ring-1 ring-inset ring-accent/20" 
-                  : "text-text-secondary hover:bg-bg-secondary hover:text-text-primary"
+                  ? "bg-[--accent-subtle] text-[--accent] ring-1 ring-inset ring-[--accent-border]/50" 
+                  : "text-[--text-2] hover:bg-[--surface-raised] hover:text-[--text-1]"
               )}
             >
-              <Box className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-accent" : "text-text-tertiary")} />
+              <Box className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-[--accent]" : "text-[--text-3]")} />
               <span className="truncate flex-1 text-left text-[13px]">{mesh.name}</span>
               
               {hasInteractions && (
-                <div className="flex items-center justify-center w-4 h-4 rounded-full bg-accent/20">
-                   <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                <div className="flex items-center justify-center w-4 h-4 rounded-full bg-[--accent-subtle]">
+                   <div className="w-1.5 h-1.5 rounded-full bg-[--accent]" />
                 </div>
               )}
               
@@ -132,8 +132,8 @@ function MeshList({ url }: { url: string }) {
         )}
       </div>
 
-      <div className="p-4 border-t border-border-default bg-bg-secondary">
-         <p className="text-xs text-text-tertiary font-medium leading-loose">
+      <div className="p-4 border-t border-[--border] bg-[--bg]">
+         <p className="text-xs text-[--text-3] font-medium leading-loose">
             Total nodes: {meshes.length}
          </p>
       </div>
