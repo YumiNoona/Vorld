@@ -32,7 +32,7 @@ function RefractiveOrb() {
 
   return (
     <group>
-      <Sphere ref={meshRef} args={[1, 128, 128]} scale={1.8}>
+      <Sphere ref={meshRef} args={[1, 64, 64]} scale={1.8}>
         <meshPhysicalMaterial
           roughness={0.05}
           metalness={0.1}
@@ -143,9 +143,13 @@ export function Hero() {
 
       {/* --- The Glass Orb Stage --- */}
       <div className="absolute inset-0 z-10">
-        <Canvas gl={{ antialias: true, alpha: true }}>
+        <Canvas 
+          gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+          dpr={[1, 1.5]}
+        >
           <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={45} />
-          <Environment preset="city" />
+          <ambientLight intensity={0.5} />
+          <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={10} />
           
           <Suspense fallback={null}>
              <RefractiveOrb />
