@@ -1,15 +1,12 @@
 -- ============================================
--- 💣 FULL NUKE (SAFE RESET)
+-- 💣 FULL RESET
 -- ============================================
 
--- Drop triggers
 drop trigger if exists on_auth_user_created on auth.users;
 
--- Drop functions
 drop function if exists public.handle_new_user cascade;
-drop function if exists update_updated_at_column cascade;
+drop function if exists public.update_updated_at_column cascade;
 
--- Drop tables
 drop table if exists public.projects cascade;
 drop table if exists public.profiles cascade;
 
@@ -28,12 +25,7 @@ end loop;
 end $$;
 
 -- ============================================
--- ✅ CLEAN
--- ============================================
-
-
--- ============================================
--- 🚀 VORLD FINAL CLEAN SETUP (CORRECT)
+-- 🚀 CORE TABLES
 -- ============================================
 
 -- =========================
@@ -105,22 +97,50 @@ using (auth.uid() = user_id);
 
 create index idx_projects_user on public.projects(user_id);
 
--- Auto timestamp
-create or replace function update_updated_at_column()
-returns trigger as $$
+-- ============================================
+-- 🔒 SAFE FUNCTIONS (FIXED)
+-- ============================================
+
+create or replace function public.update_updated_at_column()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
 new.updated_at = now();
 return new;
 end;
-$$ language plpgsql;
+$$;
 
 create trigger update_projects_updated_at
 before update on public.projects
-for each row execute procedure update_updated_at_column();
+for each row execute procedure public.update_updated_at_column();
 
--- =========================
--- STORAGE BUCKETS
--- =========================
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+insert into public.profiles (id, email, full_name)
+values (
+new.id,
+new.email,
+coalesce(new.raw_user_meta_data->>'full_name', '')
+);
+return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute procedure public.handle_new_user();
+
+-- ============================================
+-- 🪣 STORAGE BUCKETS
+-- ============================================
 
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
@@ -134,52 +154,63 @@ insert into storage.buckets (id, name, public)
 values ('thumbnails', 'thumbnails', true)
 on conflict do nothing;
 
+-- ============================================
+-- 🔐 STORAGE POLICIES
+-- ============================================
+
 -- =========================
--- STORAGE POLICIES
+-- AVATARS (NO PUBLIC LISTING)
 -- =========================
 
--- AVATARS
 create policy "avatars_select"
 on storage.objects for select
-using (bucket_id = 'avatars');
+using (
+bucket_id = 'avatars'
+AND (
+(storage.foldername(name))[1] = auth.uid()::text
+)
+);
 
 create policy "avatars_insert"
 on storage.objects for insert
 with check (
 bucket_id = 'avatars'
-and (storage.foldername(name))[1] = auth.uid()::text
+AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
 create policy "avatars_update"
 on storage.objects for update
 using (
 bucket_id = 'avatars'
-and (storage.foldername(name))[1] = auth.uid()::text
+AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
 create policy "avatars_delete"
 on storage.objects for delete
 using (
 bucket_id = 'avatars'
-and (storage.foldername(name))[1] = auth.uid()::text
+AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
--- MODELS
+-- =========================
+-- MODELS (PRIVATE + PUBLIC VIA PROJECT)
+-- =========================
+
 create policy "models_select_owner"
 on storage.objects for select
 using (
 bucket_id = 'models'
-and (storage.foldername(name))[1] = auth.uid()::text
+AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
 create policy "models_select_public"
 on storage.objects for select
 using (
 bucket_id = 'models'
-and exists (
+AND exists (
 select 1 from public.projects
 where model_path = name
-and is_public = true
+AND is_public = true
 )
 );
 
@@ -187,54 +218,58 @@ create policy "models_insert"
 on storage.objects for insert
 with check (
 bucket_id = 'models'
-and (storage.foldername(name))[1] = auth.uid()::text
+AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
 create policy "models_delete"
 on storage.objects for delete
 using (
 bucket_id = 'models'
-and (storage.foldername(name))[1] = auth.uid()::text
+AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
--- THUMBNAILS
-create policy "thumbnails_select_public"
+-- =========================
+-- THUMBNAILS (PUBLIC VIA PROJECT ONLY)
+-- =========================
+
+create policy "thumbnails_select"
 on storage.objects for select
-using (bucket_id = 'thumbnails');
-
-create policy "thumbnails_insert_auth"
-on storage.objects for insert
-with check (bucket_id = 'thumbnails' and auth.role() = 'authenticated');
-
-create policy "thumbnails_update_auth"
-on storage.objects for update
-using (bucket_id = 'thumbnails' and auth.role() = 'authenticated');
-
-create policy "thumbnails_delete_auth"
-on storage.objects for delete
-using (bucket_id = 'thumbnails' and auth.role() = 'authenticated');
-
--- =========================
--- AUTH TRIGGER
--- =========================
-
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-insert into public.profiles (id, email, full_name)
-values (
-new.id,
-new.email,
-coalesce(new.raw_user_meta_data->>'full_name', '')
+using (
+bucket_id = 'thumbnails'
+AND exists (
+select 1 from public.projects
+where thumbnail_url = name
+AND (is_public = true OR user_id = auth.uid())
+)
 );
-return new;
-end;
-$$ language plpgsql security definer;
 
-create trigger on_auth_user_created
-after insert on auth.users
-for each row execute procedure public.handle_new_user();
+create policy "thumbnails_insert"
+on storage.objects for insert
+with check (
+bucket_id = 'thumbnails'
+AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "thumbnails_update"
+on storage.objects for update
+using (
+bucket_id = 'thumbnails'
+AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "thumbnails_delete"
+on storage.objects for delete
+using (
+bucket_id = 'thumbnails'
+AND (storage.foldername(name))[1] = auth.uid()::text
+);
 
 -- ============================================
--- ✅ DONE CLEAN
+-- ✅ FINAL STATE
 -- ============================================
+
+-- ✔ No public file listing leaks
+-- ✔ Secure functions (search_path fixed)
+-- ✔ User-isolated storage
+-- ✔ Project-based public access
+-- ✔ Clean Security Advisor
