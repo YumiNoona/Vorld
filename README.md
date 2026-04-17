@@ -9,7 +9,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS_v4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-[**Explore Live Demo**](#) • [**View Documentation**](#) • [**Report Bug**](https://github.com/YumiNoona/Vorld/issues)
+[**Explore Live Demo**](https://vorld.venusapp.in/) • [**View Documentation**](#) • [**Report Bug**](https://github.com/YumiNoona/Vorld/issues)
 
 ---
 
@@ -32,19 +32,19 @@
 ## ✨ Key Features
 
 ### 🎮 The 3D Engine
+- **Ash Adaptive Design System**: A high-fidelity, monochromatic UI architecture that ensures 100% legibility and visual depth in both Light and Dark modes.
 - **Liquid Glass Interface**: High-performance "Apple-style" dock with spring-tuned physics and Gaussian blur backdrops.
+- **Instant-Load Architecture**: Optimized WebGL rendering path with local lighting and low-poly geometric caching for sub-second hero renders.
 - **15+ Interaction Types**: 
   - **Visual**: Highlight, Glow, Material Swap, Particle Burst.
   - **Spatial**: Camera Focus, Explode View, Reveal Hidden, Scale.
   - **Logic**: Toggle States, URL Redirects, Info Panels, Animation Clips, Audio.
-- **Professional Asset Pipeline**: Automated 512x512 thumbnail generation for all uploaded `.glb` files with transparent background and studio framing.
-- **High-Performance selection**: Emerald-green halos and wireframe bounding boxes for precise editing.
-- **Atmospheric Controls**: Real-time environment preset switching (City, Sunset, Studio, etc.) with high-fidelity contact shadows.
+- **Professional Asset Pipeline**: Automated 512x512 thumbnail generation for all uploaded `.glb` files with studio-grade auto-framing.
 
 ### 🛠 The Creator Dashboard
+- **Edge-to-Edge Workspace**: A frameless, immersive editor layout that removes structural outlines for a minimalist, focused creative experience.
 - **Visual Mesh Explorer**: Navigate your 3D hierarchy in real-time to target specific nodes for interactivity.
 - **Real-time Synchronization**: Changes in the editor auto-save to the cloud and reflect instantly in the viewport.
-- **Project Suites**: Manage multiple project thumbnails, descriptions, and settings in a modern studio-grid UI.
 
 ---
 
