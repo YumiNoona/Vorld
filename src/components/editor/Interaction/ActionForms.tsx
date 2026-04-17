@@ -5,11 +5,13 @@ import {
   Trash2, X, Box, GripVertical, Settings2, Sparkles, 
   Zap, Play, Info, ExternalLink, ChevronDown, ChevronUp,
   Sun, Maximize, Camera, Activity, Volume2, FileText, Link, ToggleLeft,
-  Move3D, Palette, Tag, PartyPopper, Eye, CloudSun
+  Move3D, Palette, Tag, PartyPopper, Eye, CloudSun, ArrowUpToLine
 } from "lucide-react";
+import { toast } from "sonner";
 import { useEditorStore, InteractionAction } from "@/stores/editorStore";
 import { ActionStack } from "./ActionStack";
 import { cn } from "@/lib/utils";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 // Blender-style 3D Icons (Simplified SVG Components)
 const IconSparkles = (props: any) => (
@@ -77,7 +79,6 @@ export const ACTION_TYPES = [
   { id: "info_panel", icon: IconFileText, label: "Overlay Panel", description: "Show an info card overlay" },
   { id: "url", icon: IconLink, label: "Open Link", description: "Navigate to an external URL" },
   { id: "toggle", icon: IconToggleLeft, label: "State Toggle", description: "Toggle between two action sets" },
-  { id: "explode_view", icon: Move3D, label: "Explode View", description: "Move mesh outward from center" },
   { id: "material_swap", icon: Palette, label: "Material Swap", description: "Change color/roughness/metalness" },
   { id: "label_pin", icon: Tag, label: "Label Pin", description: "Pin a floating 2D label to mesh" },
   { id: "particle_burst", icon: PartyPopper, label: "Particle Burst", description: "Emit particles from mesh center" },
@@ -88,7 +89,7 @@ export const ACTION_TYPES = [
 interface ActionFormProps {
   interactionId: string;
   action: InteractionAction;
-  onUpdate: (updates: any) => void;
+  onUpdate: (updates: any, noHistory?: boolean) => void;
   animations: string[];
 }
 
@@ -103,21 +104,14 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
 
   switch (type) {
     case "highlight":
-    case "glow":
       return (
         <div className="flex items-center gap-4">
            <div className="flex-1">
              <InputLabel>Color</InputLabel>
-             <div className="flex items-center gap-3 bg-bg-primary border border-border-default h-9 px-3 rounded-lg relative overflow-hidden group/color">
-               <input 
-                 type="color" 
-                 value={config.color || "#10b981"} 
-                 onChange={e => onUpdate({ color: e.target.value })} 
-                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-               />
-               <div className="w-4 h-4 rounded-full border border-black/10 ring-1 ring-white/10" style={{ backgroundColor: config.color || "#10b981" }} />
-               <span className="text-sm font-mono text-text-primary tracking-tight">{config.color?.toUpperCase() || "#10B981"}</span>
-             </div>
+             <ColorPicker 
+               color={config.color || "#10b981"} 
+               onChange={(newColor, noHistory) => onUpdate({ color: newColor }, noHistory)} 
+             />
            </div>
             <div className="w-24">
               <InputLabel>Duration</InputLabel>
@@ -133,6 +127,46 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
                 <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
               </div>
             </div>
+        </div>
+      );
+
+    case "glow":
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <InputLabel>Glow Color</InputLabel>
+              <ColorPicker 
+                color={config.color || "#10b981"} 
+                onChange={(newColor, noHistory) => onUpdate({ color: newColor }, noHistory)} 
+              />
+            </div>
+            <div className="w-24">
+              <InputLabel>Intensity</InputLabel>
+              <input 
+                type="number" 
+                step="0.1" 
+                min="0"
+                className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all" 
+                value={config.intensity ?? 2.0} 
+                onChange={e => onUpdate({ intensity: parseFloat(e.target.value) })} 
+              />
+            </div>
+          </div>
+          <div>
+            <InputLabel>Duration</InputLabel>
+            <div className="relative flex items-center w-full">
+              <input 
+                type="number" 
+                step="0.05" 
+                className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" 
+                style={{ lineHeight: '34px' }}
+                value={action.config.duration ?? 0.15} 
+                onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} 
+              />
+              <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
+            </div>
+          </div>
         </div>
       );
 
@@ -219,34 +253,109 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
         </div>
       );
 
-    case "audio":
+    case "audio": {
+      const isYoutube = config.src?.includes("youtube.com") || config.src?.includes("youtu.be");
+      const isSpotify = config.src?.includes("spotify.com");
+      const isLocal = config.sourceType === "file";
+
       return (
         <div className="space-y-4">
-          <div>
-            <InputLabel>Source URL</InputLabel>
-            <input 
-              type="url" 
-              value={config.src || ""} 
-              placeholder="https://example.com/audio.mp3" 
-              onChange={e => onUpdate({ src: e.target.value })} 
-              className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent transition-all" 
-            />
+          <div className="flex p-1 bg-bg-secondary rounded-lg border border-border-default">
+            <button 
+              onClick={() => onUpdate({ sourceType: 'url' })}
+              className={cn("flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all", !isLocal ? "bg-bg-primary text-accent shadow-sm" : "text-text-tertiary hover:text-text-secondary")}
+            >
+              Remote URL
+            </button>
+            <button 
+              onClick={() => onUpdate({ sourceType: 'file' })}
+              className={cn("flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all", isLocal ? "bg-bg-primary text-accent shadow-sm" : "text-text-tertiary hover:text-text-secondary")}
+            >
+              Upload Local
+            </button>
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-               <InputLabel>Volume</InputLabel>
-               <span className="text-[10px] font-medium text-accent">{Math.round((config.volume ?? 1) * 100)}%</span>
+
+          <div>
+            <InputLabel>{isLocal ? "Select File" : "Source URL"}</InputLabel>
+            {isLocal ? (
+              <div className="flex flex-col gap-2">
+                 <input 
+                   type="file" 
+                   accept="audio/*"
+                   className="hidden" 
+                   id={`audio-upload-${action.id}`}
+                   onChange={e => {
+                     const file = e.target.files?.[0];
+                     if (file) {
+                       // In a real app we'd upload to Supabase, but for session we'll use blob
+                       // The runtime will handle creating the ObjectURL
+                       onUpdate({ src: URL.createObjectURL(file), fileName: file.name });
+                       toast.success(`Loaded: ${file.name}`);
+                     }
+                   }}
+                 />
+                 <label 
+                   htmlFor={`audio-upload-${action.id}`}
+                   className="w-full h-10 border-2 border-dashed border-border-default rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:bg-accent/5 cursor-pointer transition-all"
+                 >
+                   <ArrowUpToLine className="w-4 h-4 text-text-tertiary" />
+                   <span className="text-xs font-medium text-text-secondary">{config.fileName || "Choose MP3/WAV..."}</span>
+                 </label>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input 
+                  type="url" 
+                  value={config.src || ""} 
+                  placeholder="https://example.com/audio.mp3" 
+                  onChange={e => onUpdate({ src: e.target.value })} 
+                  className={cn(
+                    "w-full h-9 bg-bg-primary rounded-lg border px-3 text-sm text-text-primary outline-none transition-all",
+                    (isYoutube || isSpotify) ? "border-red-500/50" : "border-border-default focus:border-accent"
+                  )} 
+                />
+                {(isYoutube || isSpotify) && (
+                  <p className="text-[10px] text-red-500 font-medium">
+                    Streaming links (YouTube/Spotify) are not supported. Use a direct file link (.mp3, .wav).
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-1">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <InputLabel>Volume</InputLabel>
+                <span className="text-[10px] font-mono font-bold text-accent">{Math.round((config.volume ?? 1) * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" max="1" step="0.1"
+                value={config.volume ?? 1}
+                onChange={e => onUpdate({ volume: parseFloat(e.target.value) })}
+                className="w-full accent-accent h-1 rounded-full bg-border-default appearance-none cursor-pointer"
+              />
             </div>
-            <input 
-              type="range" 
-              min="0" max="1" step="0.1"
-              value={config.volume ?? 1}
-              onChange={e => onUpdate({ volume: parseFloat(e.target.value) })}
-              className="w-full accent-accent h-1.5 rounded-full bg-border-default appearance-none cursor-pointer"
-            />
+            <div className="flex flex-col justify-end pb-1">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    checked={config.loop ?? false}
+                    onChange={(e) => onUpdate({ loop: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-7 h-4 bg-border-default rounded-full peer peer-checked:bg-accent transition-all" />
+                  <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-3" />
+                </div>
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider group-hover:text-text-primary transition-colors">Loop</span>
+              </label>
+            </div>
           </div>
         </div>
       );
+    }
 
     case "info_panel":
       return (
@@ -337,51 +446,6 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
 
     // ── NEW INTERACTION TYPES ──
 
-    case "explode_view":
-      return (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <InputLabel>Direction</InputLabel>
-              <div className="relative">
-                <select 
-                  value={config.direction || "auto"} 
-                  onChange={e => onUpdate({ direction: e.target.value })}
-                  className="w-full h-9 bg-bg-primary rounded-lg border border-border-default px-3 text-sm text-text-primary outline-none focus:border-accent appearance-none transition-all cursor-pointer"
-                >
-                  <option value="auto">Auto</option>
-                  <option value="x">X Axis</option>
-                  <option value="y">Y Axis</option>
-                  <option value="z">Z Axis</option>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary" />
-              </div>
-            </div>
-            <div>
-              <InputLabel>Distance</InputLabel>
-              <input 
-                type="number" 
-                step="0.1" 
-                className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm px-3 text-text-primary outline-none focus:border-accent transition-all" 
-                value={config.distance ?? 0.5} 
-                onChange={e => onUpdate({ distance: parseFloat(e.target.value) })} 
-              />
-            </div>
-          </div>
-          <div className="w-24">
-            <InputLabel>Duration</InputLabel>
-            <div className="relative flex items-center">
-              <input 
-                type="number" step="0.05" 
-                className="w-full h-9 bg-bg-primary rounded-lg border border-border-default text-sm pl-3 pr-7 text-text-primary outline-none focus:border-accent transition-all leading-none py-0" 
-                value={config.duration ?? 0.4} 
-                onChange={e => onUpdate({ duration: parseFloat(e.target.value) })} 
-              />
-              <span className="absolute right-3 text-[10px] text-text-tertiary font-bold pointer-events-none uppercase tracking-tighter">sec</span>
-            </div>
-          </div>
-        </div>
-      );
 
     case "material_swap":
       return (
@@ -389,11 +453,10 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <InputLabel>Color</InputLabel>
-              <div className="flex items-center gap-3 bg-bg-primary border border-border-default h-9 px-3 rounded-lg relative overflow-hidden">
-                <input type="color" value={config.color || "#ffffff"} onChange={e => onUpdate({ color: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                <div className="w-4 h-4 rounded-full border border-black/10 ring-1 ring-white/10" style={{ backgroundColor: config.color || "#ffffff" }} />
-                <span className="text-sm font-mono text-text-primary tracking-tight">{(config.color || "#FFFFFF").toUpperCase()}</span>
-              </div>
+              <ColorPicker 
+                color={config.color || "#ffffff"} 
+                onChange={(newColor, noHistory) => onUpdate({ color: newColor }, noHistory)} 
+              />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -430,11 +493,10 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
             </div>
             <div>
               <InputLabel>Background</InputLabel>
-              <div className="flex items-center gap-2 bg-bg-primary border border-border-default h-9 px-2 rounded-lg relative overflow-hidden">
-                <input type="color" value={config.backgroundColor || "#000000"} onChange={e => onUpdate({ backgroundColor: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: config.backgroundColor || "#000000" }} />
-                <span className="text-[10px] font-mono text-text-primary">{(config.backgroundColor || "#000000").toUpperCase()}</span>
-              </div>
+              <ColorPicker 
+                color={config.backgroundColor || "#000000"} 
+                onChange={(newColor, noHistory) => onUpdate({ backgroundColor: newColor }, noHistory)} 
+              />
             </div>
             <div>
               <InputLabel>Position</InputLabel>
@@ -461,11 +523,10 @@ export function ActionForm({ interactionId, action, onUpdate, animations }: Acti
             </div>
             <div>
               <InputLabel>Color</InputLabel>
-              <div className="flex items-center gap-3 bg-bg-primary border border-border-default h-9 px-3 rounded-lg relative overflow-hidden">
-                <input type="color" value={config.color || "#10b981"} onChange={e => onUpdate({ color: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                <div className="w-4 h-4 rounded-full border border-black/10 ring-1 ring-white/10" style={{ backgroundColor: config.color || "#10b981" }} />
-                <span className="text-sm font-mono text-text-primary tracking-tight">{(config.color || "#10B981").toUpperCase()}</span>
-              </div>
+              <ColorPicker 
+                color={config.color || "#10b981"} 
+                onChange={(newColor, noHistory) => onUpdate({ color: newColor }, noHistory)} 
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

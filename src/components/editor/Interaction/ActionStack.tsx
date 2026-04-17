@@ -68,7 +68,6 @@ export function ActionStack({ interactionId, actions, animations, onUpdateStack 
     if (type === "audio") defaultConfig = { src: "", volume: 1, loop: false };
     if (type === "animation") defaultConfig = { clip: animations[0] || "", loop: true };
     if (type === "toggle") defaultConfig = { stateKey: `toggle_${Math.random().toString(36).substr(2, 5)}`, states: { on: [], off: [] } };
-    if (type === "explode_view") defaultConfig = { direction: "auto", distance: 0.5, duration: 0.4 };
     if (type === "material_swap") defaultConfig = { color: "#ffffff", roughness: 0.5, metalness: 0.8, duration: 0.3 };
     if (type === "label_pin") defaultConfig = { text: "", fontSize: 14, backgroundColor: "#000000", position: "top" };
     if (type === "particle_burst") defaultConfig = { count: 20, color: "#10b981", size: 0.05, duration: 1.0 };
@@ -192,7 +191,7 @@ export function ActionStack({ interactionId, actions, animations, onUpdateStack 
                            ))}
                         </CommandGroup>
                         <CommandGroup heading="Spatial">
-                           {ACTION_TYPES.filter(a => ["explode_view", "label_pin", "particle_burst", "reveal_hidden"].includes(a.id)).map(type => (
+                           {ACTION_TYPES.filter(a => ["label_pin", "particle_burst", "reveal_hidden"].includes(a.id)).map(type => (
                               <CommandItem 
                                  key={type.id} 
                                  onSelect={() => handleAddAction(type.id)}

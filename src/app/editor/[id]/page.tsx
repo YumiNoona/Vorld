@@ -9,19 +9,16 @@ import { InfoPanelOverlay } from "@/components/shared/InfoPanelOverlay";
 import { 
   ChevronLeft, 
   Save, 
-  Play, 
   Check,
   ChevronRight,
   Globe,
   Loader2,
-  StopCircle,
   Box,
   Square,
   Image as ImageIcon,
   Maximize,
   ArrowDownToLine,
   ArrowRight,
-  BarChart3,
   Pencil
 } from "lucide-react";
 import Link from "next/link";
@@ -318,13 +315,6 @@ export default function EditorPage() {
           <button onClick={handleSave} disabled={isSaving || !isDirty} className={cn("h-8 px-4 rounded-md text-xs font-semibold transition-all flex items-center gap-2 active:scale-95", showSavedFeedback ? "bg-accent text-white" : "bg-bg-secondary hover:bg-bg-primary text-text-primary border border-border-default disabled:opacity-50")}>
             {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : showSavedFeedback ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
             {showSavedFeedback ? "Saved" : "Save"}
-          </button>
-          <button onClick={() => setPreviewMode(!previewMode)} className={cn("h-8 px-4 rounded-md text-xs font-semibold transition-all flex items-center gap-2 active:scale-95", previewMode ? "bg-accent text-white" : "bg-bg-secondary text-text-primary border border-border-default")}>
-            {previewMode ? <StopCircle className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-            {previewMode ? "Stop" : "Preview"}
-          </button>
-          <button onClick={() => toast.info("Analytics coming soon to your plan!")} className="h-8 px-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-all flex items-center gap-2 active:scale-95 border border-transparent hover:border-border-default">
-            <BarChart3 className="w-3.5 h-3.5" /><span className="text-xs font-semibold">Analytics</span>
           </button>
           <div className="h-4 w-px bg-border-default mx-1" />
           <PublishSheet projectId={id} initialIsPublished={project?.is_public} projectName={project?.name}>

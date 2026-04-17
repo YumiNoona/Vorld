@@ -4,43 +4,90 @@ import React, { Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Interaction, InteractionAction } from "@/stores/editorStore";
 
+interface InteractionData {
+  id: string;
+  emissive?: { color: THREE.Color; intensity: number };
+  scale?: number;
+  labelIds?: string[];
+  audioSrc?: string;
+  position?: THREE.Vector3;
+}
+
 interface MeshState {
   mesh: THREE.Mesh;
-  targetScale?: THREE.Vector3;
-  targetColor?: THREE.Color;
-  targetEmissive?: THREE.Color;
+  // Precomputed Statics
+  worldCenter: THREE.Vector3;
+  worldQuaternion: THREE.Quaternion;
+  bounds: THREE.Box3;
+  isDynamic?: boolean;
+  
+  // Resolution Engine
+  interactionData: Map<string, InteractionData>;
+  activationOrder: string[]; 
+  activeInteractions: Set<string>;
+  currentAudioOwner: string | null;
+  labelsByInteraction: Map<string, string[]>;
+
+  // Shared Targets (Interpolated)
+  targetScale: THREE.Vector3;
+  targetColor: THREE.Color;
+  targetEmissive: THREE.Color;
+  targetEmissiveIntensity: number;
   targetPosition?: THREE.Vector3;
+
+  // Persistence Originals
+  originalScale: THREE.Vector3;
+  originalColor: THREE.Color;
+  originalEmissive: THREE.Color;
+  originalEmissiveIntensity: number;
+  originalPosition: THREE.Vector3;
+  originalRoughness: number;
+  originalMetalness: number;
+  hasClonedMaterial: boolean;
   mixer?: THREE.AnimationMixer;
-  originalScale?: THREE.Vector3;
-  originalColor?: THREE.Color;
-  originalEmissive?: THREE.Color;
-  originalPosition?: THREE.Vector3;
-  originalRoughness?: number;
-  originalMetalness?: number;
-  hasClonedMaterial?: boolean;
 }
 
 export function useInteractionRuntime() {
   const setInfoPanel = useViewerStore((state) => state.setInfoPanel);
   const addLabel = useViewerStore((state) => state.addLabel);
+  const clearLabels = useViewerStore((state) => state.clearLabels);
+  const environmentPreset = useViewerStore((state) => state.environmentPreset);
   const setEnvironmentPreset = useViewerStore((state) => state.setEnvironmentPreset);
+  
   const stateMap = useRef<Map<string, MeshState>>(new Map());
   const toggleStates = useRef<Map<string, boolean>>(new Map());
   const runningMap = useRef<Map<string, boolean>>(new Map());
   const isAnimating = useRef(false);
   const isCancelled = useRef(false);
+  const isSceneReady = useRef(false);
   const cameraTargetPos = useRef<THREE.Vector3 | null>(null);
+  const audioPlayToken = useRef(0);
+  
+  // Studio Audio System
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioFadeRaf = useRef<number | null>(null);
   
   const { camera, controls, scene: threeScene } = useThree() as { camera: THREE.PerspectiveCamera, controls: any, scene: THREE.Scene, gl: THREE.WebGLRenderer };
 
   useEffect(() => {
     isCancelled.current = false;
+    audioRef.current = new Audio();
     return () => {
       isCancelled.current = true;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        if (audioRef.current.src.startsWith('blob:')) {
+          URL.revokeObjectURL(audioRef.current.src);
+        }
+        audioRef.current = null;
+      }
+      if (audioFadeRaf.current) cancelAnimationFrame(audioFadeRaf.current);
     };
   }, []);
 
   useFrame((state, delta) => {
+    if (!isSceneReady.current) return;
+
     // Camera Lerp
     if (cameraTargetPos.current) {
        camera.position.lerp(cameraTargetPos.current, 5 * delta);
@@ -53,23 +100,25 @@ export function useInteractionRuntime() {
     }
 
     stateMap.current.forEach((data) => {
-      // Delta-scaled lerps for consistency
-      if (data.targetScale) {
-        data.mesh.scale.lerp(data.targetScale, delta * 8);
-      }
-      
-      if (data.targetColor && data.mesh.material) {
-         const mat = data.mesh.material as THREE.MeshStandardMaterial;
-         if (mat.color) {
-            mat.color.lerp(data.targetColor, delta * 8);
-         }
+      // Skinned mesh / Dynamic update guard
+      if (data.isDynamic) {
+        data.mesh.updateMatrixWorld(true);
+        data.bounds.setFromObject(data.mesh);
+        data.mesh.getWorldPosition(data.worldCenter);
       }
 
-      if (data.targetEmissive && data.mesh.material) {
-         const mat = data.mesh.material as THREE.MeshStandardMaterial;
-         if (mat.emissive) {
-            mat.emissive.lerp(data.targetEmissive, delta * 8);
-         }
+      // Delta-scaled lerps for consistency (Always lerp to resolved targets)
+      data.mesh.scale.lerp(data.targetScale, delta * 8);
+      
+      const mat = data.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.lerp(data.targetColor, delta * 8);
+      }
+
+      if (mat && mat.emissive) {
+        mat.emissive.lerp(data.targetEmissive, delta * 8);
+        mat.emissiveIntensity = THREE.MathUtils.lerp(mat.emissiveIntensity, data.targetEmissiveIntensity, delta * 8);
+        mat.needsUpdate = true;
       }
 
       if (data.targetPosition) {
@@ -77,7 +126,7 @@ export function useInteractionRuntime() {
       }
 
       if (data.mixer) {
-         data.mixer.update(delta);
+        data.mixer.update(delta);
       }
     });
 
@@ -118,93 +167,237 @@ export function useInteractionRuntime() {
     });
   });
 
+  const rebuildMeshState = (mesh: THREE.Mesh) => {
+    const state = stateMap.current.get(mesh.uuid);
+    if (!state) return;
+
+    // 1. Reset to base state for the reconstruction pass
+    let finalScaleMult = 1.0;
+    let finalColor = state.originalColor.clone();
+    let finalEmissive = state.originalEmissive.clone();
+    let finalEmissiveIntensity = state.originalEmissiveIntensity;
+    
+    const EPS = 1e-4;
+
+    // 2. Aggregate from active interactions in activation order
+    state.activationOrder.forEach((id) => {
+      const data = state.interactionData.get(id);
+      if (!data) return;
+
+      // Color/Emissive: Last-writer wins (temporal sequence)
+      if (data.emissive) {
+        finalEmissive = data.emissive.color.clone();
+        finalEmissiveIntensity = data.emissive.intensity;
+      }
+
+      // Scale: baseScale * max(activeScales)
+      // Tie-break: if within EPS, the more recent interaction (current ID) persists
+      if (data.scale !== undefined) {
+        if (Math.abs(data.scale - finalScaleMult) > EPS) {
+          finalScaleMult = Math.max(finalScaleMult, data.scale);
+        } else {
+          // Tie-break: Prefer most recent activation
+          finalScaleMult = data.scale;
+        }
+      }
+    });
+
+    // 3. Atomic Assignment of resolved targets
+    state.targetScale = state.originalScale.clone().multiplyScalar(finalScaleMult);
+    state.targetColor = finalColor;
+    state.targetEmissive = finalEmissive;
+    state.targetEmissiveIntensity = finalEmissiveIntensity;
+  };
+
+  const registerMesh = (mesh: THREE.Mesh) => {
+    if (stateMap.current.has(mesh.uuid)) return;
+
+    mesh.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(mesh);
+    const worldCenter = new THREE.Vector3();
+    box.getCenter(worldCenter);
+
+    const worldQuaternion = new THREE.Quaternion();
+    mesh.getWorldQuaternion(worldQuaternion);
+
+    const mat = mesh.material as any;
+    const state: MeshState = {
+      mesh,
+      worldCenter,
+      worldQuaternion,
+      bounds: box,
+      isDynamic: !!(mesh as any).isSkinnedMesh || !!(mesh as any).skeleton,
+      interactionData: new Map(),
+      activationOrder: [],
+      activeInteractions: new Set(),
+      currentAudioOwner: null,
+      labelsByInteraction: new Map(),
+      targetScale: mesh.scale.clone(),
+      targetColor: mat.color?.clone() || new THREE.Color("#ffffff"),
+      targetEmissive: mat.emissive?.clone() || new THREE.Color("#000000"),
+      targetEmissiveIntensity: mat.emissiveIntensity || 0,
+      originalScale: mesh.scale.clone(),
+      originalColor: mat.color?.clone() || new THREE.Color("#ffffff"),
+      originalEmissive: mat.emissive?.clone() || new THREE.Color("#000000"),
+      originalEmissiveIntensity: mat.emissiveIntensity || 0,
+      originalPosition: mesh.position.clone(),
+      originalRoughness: mat.roughness || 0.5,
+      originalMetalness: mat.metalness || 0,
+      hasClonedMaterial: false,
+    };
+
+    stateMap.current.set(mesh.uuid, state);
+  };
+
   const getOrCreateState = (mesh: THREE.Mesh) => {
     if (!stateMap.current.has(mesh.uuid)) {
-      stateMap.current.set(mesh.uuid, { mesh });
+      registerMesh(mesh);
     }
     return stateMap.current.get(mesh.uuid)!;
+  };
+
+  const revertInteraction = (mesh: THREE.Mesh, interactionId: string) => {
+    const state = stateMap.current.get(mesh.uuid);
+    if (!state) return;
+
+    // 1. Remove from temporal records
+    state.activeInteractions.delete(interactionId);
+    state.activationOrder = state.activationOrder.filter(id => id !== interactionId);
+    state.interactionData.delete(interactionId);
+
+    // 2. Surgical UI Cleanup (Labels)
+    const labelIds = state.labelsByInteraction.get(interactionId);
+    if (labelIds) {
+      labelIds.forEach(id => {
+        useViewerStore.getState().removeLabel(id);
+      });
+      state.labelsByInteraction.delete(interactionId);
+    }
+
+    // 3. Audio Ownership Cleanup
+    if (state.currentAudioOwner === interactionId && audioRef.current) {
+      audioRef.current.pause();
+      state.currentAudioOwner = null;
+    }
+
+    // 4. Pure Rebuild (Atomic)
+    rebuildMeshState(mesh);
   };
 
   const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   // The engine processor!
-  const runSequence = async (mesh: THREE.Mesh, actions: InteractionAction[], triggerOrigin: string) => {
+  const runSequence = async (mesh: THREE.Mesh, actions: InteractionAction[], triggerOrigin: string, interactionId: string) => {
     if (!actions || actions.length === 0 || isCancelled.current) return;
     if (runningMap.current.get(mesh.uuid)) return;
 
-    // Per-mesh animation guard: allow parallel animations on different objects
-    if (mesh.userData.isAnimating) return;
     mesh.userData.isAnimating = true;
     runningMap.current.set(mesh.uuid, true);
 
     try {
       const state = getOrCreateState(mesh);
+      const seqId = (mesh.userData.sequenceId || 0) + 1;
+      mesh.userData.sequenceId = seqId;
 
-      // Baseline position storage (one-time sync)
-      if (!mesh.userData.originalPosition) {
-        mesh.userData.originalPosition = mesh.position.clone();
-      }
+      // 1. Canonical Activation Order Guard (Deterministic Priority)
+      state.activationOrder = state.activationOrder.filter(id => id !== interactionId);
+      state.activationOrder.push(interactionId);
+      state.activeInteractions.add(interactionId);
 
-      // Safety material branch off — clone material before mutating
-      if (!state.hasClonedMaterial && mesh.material) {
-        const oldMaterial = mesh.material as THREE.Material;
-        mesh.material = oldMaterial.clone();
-        oldMaterial.dispose(); // Explicitly dispose to prevent GPU memory leak
-        
-        const mat = mesh.material as THREE.MeshStandardMaterial;
-        state.originalColor = mat.color?.clone();
-        state.originalEmissive = mat.emissive?.clone();
-        state.originalScale = mesh.scale.clone();
-        state.originalPosition = (mesh.userData.originalPosition as THREE.Vector3).clone();
-        state.originalRoughness = mat.roughness;
-        state.originalMetalness = mat.metalness;
-        state.hasClonedMaterial = true;
+      const interactionData: InteractionData = { id: interactionId, labelIds: [] };
+      state.interactionData.set(interactionId, interactionData);
+
+      // 2. Material Ownership Guard (Prevent Shader Hitches/Cross-talk)
+      const mat = mesh.material as any;
+      if (mat && (mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial)) {
+        if (!mat.userData.__cloned || mat.userData.__owner !== mesh.uuid) {
+          const cloned = mat.clone();
+          cloned.userData.__cloned = true;
+          cloned.userData.__owner = mesh.uuid;
+          mesh.material = cloned;
+        }
       }
 
       for (const action of actions) {
-        if (isCancelled.current) break;
+        if (isCancelled.current || mesh.userData.sequenceId !== seqId) break;
 
         const config = action.config || {};
         const durationMs = (config.duration || 0.2) * 1000;
+        
+        // Spec: Instant ≠ parallel. It fires and continues, but preserves dispatch order.
+        const isInstant = ["label_pin", "audio", "info_panel", "url", "set_environment", "toggle"].includes(action.type);
 
         const runtimeAction = {
           run: async () => {
             switch (action.type) {
               case "highlight":
-                state.targetColor = new THREE.Color(config.color || "#ffffff");
+                interactionData.emissive = { 
+                  color: new THREE.Color(config.color || "#ffffff"),
+                  intensity: state.originalEmissiveIntensity 
+                };
+                rebuildMeshState(mesh);
                 await wait(durationMs);
                 break;
 
               case "glow":
-                state.targetEmissive = new THREE.Color(config.color || "#ffffff");
+                interactionData.emissive = { 
+                  color: new THREE.Color(config.color || "#ffffff"),
+                  intensity: config.intensity ?? 2.0 
+                };
+                rebuildMeshState(mesh);
                 await wait(durationMs);
                 break;
 
               case "scale":
-                const s = config.value ?? 1.1;
-                if (state.originalScale) {
-                  state.targetScale = state.originalScale.clone().multiplyScalar(s);
-                }
+                interactionData.scale = config.value ?? 1.1;
+                rebuildMeshState(mesh);
                 await wait(durationMs);
                 break;
 
               case "audio":
-                // Browser Safety: Only allow audio on click
-                if (triggerOrigin !== "click") {
-                  console.warn("Audio skipped: Browser requires user gesture (Click) to play audio.");
-                  break;
-                }
+                if (triggerOrigin !== "click") break;
+                const audio = audioRef.current;
+                if (!audio || !config.src) break;
 
-                if (config.src && config.src.trim() !== "") {
-                  try {
-                    const audio = new Audio(config.src);
-                    audio.volume = config.volume ?? 1;
-                    audio.loop = config.loop ?? false;
-                    await audio.play();
-                  } catch (err) {
-                    console.warn("Audio playback failed:", err);
-                  }
+                const token = ++audioPlayToken.current;
+                state.currentAudioOwner = interactionId;
+
+                audio.pause();
+                audio.currentTime = 0;
+                if (audio.src.startsWith("blob:")) URL.revokeObjectURL(audio.src);
+
+                try {
+                  audio.src = config.src;
+                  audio.loop = config.loop ?? false;
+                  await audio.play();
+                  // Async win/race guard
+                  if (token !== audioPlayToken.current) audio.pause();
+                } catch (e) {
+                  console.warn("Audio failure:", e);
                 }
+                break;
+
+              case "label_pin":
+                const id = `label_${mesh.uuid}_${interactionId}_${action.id}`;
+                interactionData.labelIds?.push(id);
+                
+                // Spec: Normal-based offset for stability at grazing angles
+                const up = new THREE.Vector3(0, 1, 0).applyQuaternion(state.worldQuaternion);
+                const size = state.bounds.getSize(new THREE.Vector3());
+                const pos = state.worldCenter.clone().add(up.multiplyScalar(size.y * 0.5 + 0.01));
+
+                addLabel({
+                  id,
+                  meshUuid: mesh.uuid,
+                  text: config.text || "Label",
+                  fontSize: config.fontSize ?? 14,
+                  backgroundColor: config.backgroundColor || "#000000",
+                  position: pos.toArray() as [number, number, number],
+                });
+                
+                // Track for surgical removal
+                const existingLabels = state.labelsByInteraction.get(interactionId) || [];
+                state.labelsByInteraction.set(interactionId, [...existingLabels, id]);
                 break;
 
               case "info_panel":
@@ -219,162 +412,45 @@ export function useInteractionRuntime() {
                 break;
 
               case "url":
-                if (config.url && config.url !== "https://") {
-                  window.open(config.url, "_blank");
-                }
+                if (config.url && config.url !== "https://") window.open(config.url, "_blank");
                 break;
 
               case "camera_focus":
-                // eslint-disable-next-line react-hooks/immutability
                 if (controls) controls.enabled = false;
-
-                const box = new THREE.Box3().setFromObject(mesh);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-
-                const defaultOffset = [0, size.y * 0.5, Math.max(size.x, size.y, size.z) * 2];
-                const o = config.offset || defaultOffset;
-
-                const targetPos = center.clone().add(new THREE.Vector3(o[0], o[1], o[2]));
-                cameraTargetPos.current = targetPos;
+                cameraTargetPos.current = state.worldCenter.clone().add(new THREE.Vector3(0, 2, 5));
                 await wait(durationMs || 1000);
-                // reset happens in useFrame check
                 break;
 
               case "animation":
                 const clipName = config.clip;
                 if (!clipName) break;
-
-                // Find animations in the mesh or parents
                 let root: THREE.Object3D = mesh;
                 while (root.parent && (!(root as any).animations || (root as any).animations.length === 0)) {
                   root = root.parent;
                 }
-
                 const clips = (root as any).animations || [];
                 const clip = clips.find((c: any) => c.name === clipName);
-
                 if (clip) {
                   if (!state.mixer) state.mixer = new THREE.AnimationMixer(mesh);
                   const animAction = state.mixer.clipAction(clip);
-
                   if (config.loop === false) {
                     animAction.setLoop(THREE.LoopOnce, 1);
                     animAction.clampWhenFinished = true;
                   }
-
                   animAction.reset().fadeIn(0.2).play();
                   await wait(durationMs || clip.duration * 1000);
                 }
                 break;
 
-              case "toggle":
-                const key = config.stateKey || `toggle_${action.id}`;
-                const current = toggleStates.current.get(key) || false;
-                const nextState = !current;
-
-                toggleStates.current.set(key, nextState);
-
-                const branchingActions = nextState
-                  ? (config.states?.on || [])
-                  : (config.states?.off || []);
-
-                await runSequence(mesh, branchingActions, triggerOrigin);
+              case "set_environment":
+                setEnvironmentPreset(config.preset || "city");
                 break;
-
-              // ── NEW INTERACTION TYPES ──
-
-              case "explode_view": {
-                // Direction from model center to mesh center
-                const meshBox = new THREE.Box3().setFromObject(mesh);
-                const meshCenter = meshBox.getCenter(new THREE.Vector3());
-
-                // Find model root center
-                let modelRoot: THREE.Object3D = mesh;
-                while (modelRoot.parent && modelRoot.parent.type !== "Scene") {
-                  modelRoot = modelRoot.parent;
-                }
-                const modelBox = new THREE.Box3().setFromObject(modelRoot);
-                const modelCenter = modelBox.getCenter(new THREE.Vector3());
-
-                let direction: THREE.Vector3;
-                const dist = config.distance ?? 0.5;
-
-                if (config.direction === "x") {
-                  direction = new THREE.Vector3(dist, 0, 0);
-                } else if (config.direction === "y") {
-                  direction = new THREE.Vector3(0, dist, 0);
-                } else if (config.direction === "z") {
-                  direction = new THREE.Vector3(0, 0, dist);
-                } else {
-                  // Auto: direction from model center to mesh center
-                  direction = meshCenter.clone().sub(modelCenter).normalize().multiplyScalar(dist);
-                }
-
-                state.targetPosition = (mesh.userData.originalPosition as THREE.Vector3).clone().add(direction);
-                await wait(durationMs);
-                break;
-              }
-
-              case "material_swap": {
-                // Clone material to avoid mutating shared materials
-                if (!state.hasClonedMaterial && mesh.material) {
-                  const oldMat = mesh.material as THREE.Material;
-                  mesh.material = oldMat.clone();
-                  oldMat.dispose(); // Critical: Dispose old material when swapping to prevent leaks
-                  state.hasClonedMaterial = true;
-                }
-                const mat = mesh.material as THREE.MeshStandardMaterial;
-                if (config.color) {
-                  state.targetColor = new THREE.Color(config.color);
-                }
-                if (config.roughness !== undefined) {
-                  mat.roughness = config.roughness;
-                }
-                if (config.metalness !== undefined) {
-                  mat.metalness = config.metalness;
-                }
-                mat.needsUpdate = true;
-                await wait(durationMs);
-                break;
-              }
-
-              case "label_pin": {
-                const meshBox2 = new THREE.Box3().setFromObject(mesh);
-                const meshCenter2 = meshBox2.getCenter(new THREE.Vector3());
-                const meshSize2 = meshBox2.getSize(new THREE.Vector3());
-
-                // Offset based on config position
-                let labelPos: [number, number, number];
-                const offset2 = meshSize2.y * 0.6;
-                if (config.position === "right") {
-                  labelPos = [meshCenter2.x + meshSize2.x * 0.6, meshCenter2.y, meshCenter2.z];
-                } else if (config.position === "left") {
-                  labelPos = [meshCenter2.x - meshSize2.x * 0.6, meshCenter2.y, meshCenter2.z];
-                } else {
-                  // top
-                  labelPos = [meshCenter2.x, meshCenter2.y + offset2, meshCenter2.z];
-                }
-
-                addLabel({
-                  id: `label_${mesh.uuid}_${action.id}`,
-                  meshUuid: mesh.uuid,
-                  text: config.text || "Label",
-                  fontSize: config.fontSize ?? 14,
-                  backgroundColor: config.backgroundColor || "#000000",
-                  position: labelPos,
-                });
-                break;
-              }
 
               case "particle_burst": {
-                // Optimization: Cap particles
                 const count = Math.min(config.count ?? 20, 50);
                 const pSize = config.size ?? 0.05;
                 const color = config.color || "#10b981";
-
-                const meshBox3 = new THREE.Box3().setFromObject(mesh);
-                const origin = meshBox3.getCenter(new THREE.Vector3());
+                const origin = state.worldCenter.clone();
 
                 const positions = new Float32Array(count * 3);
                 const velocities = new Float32Array(count * 3);
@@ -383,103 +459,58 @@ export function useInteractionRuntime() {
                   positions[i * 3] = origin.x;
                   positions[i * 3 + 1] = origin.y;
                   positions[i * 3 + 2] = origin.z;
-
-                  // Random outward velocity
                   velocities[i * 3] = (Math.random() - 0.5) * 3;
-                   // eslint-disable-next-line react-hooks/immutability
                   velocities[i * 3 + 1] = Math.random() * 2 + 1;
                   velocities[i * 3 + 2] = (Math.random() - 0.5) * 3;
                 }
 
                 const geom = new THREE.BufferGeometry();
                 geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-                const particleMat = new THREE.PointsMaterial({
+                const points = new THREE.Points(geom, new THREE.PointsMaterial({
                   color: new THREE.Color(color),
                   size: pSize,
                   transparent: true,
                   opacity: 1,
                   depthWrite: false,
-                });
+                }));
 
-                const points = new THREE.Points(geom, particleMat);
                 points.userData.__particleBurst = true;
                 points.userData.__particleAge = 0;
                 points.userData.__particleDuration = config.duration ?? 1.0;
                 points.userData.__velocities = velocities;
-
                 threeScene.add(points);
-                await wait(durationMs);
                 break;
               }
 
               case "reveal_hidden": {
                 const targetName = config.targetMeshName;
                 if (!targetName) break;
-
                 let targetMesh: THREE.Mesh | null = null;
                 threeScene.traverse((child: any) => {
-                  if (child.isMesh && child.name === targetName) {
-                    targetMesh = child;
-                  }
+                  if (child.isMesh && child.name === targetName) targetMesh = child;
                 });
 
-                if (!targetMesh) break;
-                const tm = targetMesh as THREE.Mesh;
-
-                // Ensure material is cloned before mutating
-                const oldTMat = tm.material as THREE.Material;
-                tm.material = oldTMat.clone();
-                const tmMat = tm.material as THREE.MeshStandardMaterial;
-                tmMat.transparent = true;
-
-                const animType = config.animationType || "fade";
-
-                if (animType === "fade") {
-                  tmMat.opacity = 0;
+                if (targetMesh) {
+                  const tm = targetMesh as THREE.Mesh;
+                  registerMesh(tm); // Ensure it has a state
                   tm.visible = true;
-                   // eslint-disable-next-line react-hooks/immutability
-                  const steps = 20;
-                  const stepTime = durationMs / steps;
-                  for (let i = 1; i <= steps; i++) {
-                    await wait(stepTime);
-                    tmMat.opacity = i / steps;
-                  }
-                } else if (animType === "scale_in") {
-                  tm.scale.set(0.01, 0.01, 0.01);
-                  tm.visible = true;
-                  const targetScale = new THREE.Vector3(1, 1, 1);
-                  const tState = getOrCreateState(tm);
-                  tState.targetScale = targetScale;
-                  await wait(durationMs);
-                } else if (animType === "slide_up") {
-                  const origY = tm.position.y;
-                  tm.position.y = origY - 1;
-                  tmMat.opacity = 0;
-                  tm.visible = true;
-                   // eslint-disable-next-line react-hooks/immutability
-                  const steps2 = 20;
-                  const stepTime2 = durationMs / steps2;
-                  for (let i = 1; i <= steps2; i++) {
-                    await wait(stepTime2);
-                    tm.position.y = origY - 1 + (i / steps2);
-                    tmMat.opacity = i / steps2;
+                  const tState = stateMap.current.get(tm.uuid);
+                  if (tState && config.animationType === "scale_in") {
+                    tm.scale.set(0,0,0);
+                    tState.targetScale = tState.originalScale.clone();
                   }
                 }
-                break;
-              }
-
-              case "set_environment": {
-                const preset = config.preset || "city";
-                setEnvironmentPreset(preset);
                 break;
               }
             }
           }
         };
 
-        await runtimeAction.run();
-        if (isCancelled.current) break;
+        if (isInstant) {
+          runtimeAction.run();
+        } else {
+          await runtimeAction.run();
+        }
       }
     } finally {
       runningMap.current.set(mesh.uuid, false);
@@ -492,14 +523,10 @@ export function useInteractionRuntime() {
     interactions: Interaction[],
     trigger: "click" | "hover" | "unhover"
   ) => {
+    if (!isSceneReady.current) return;
     if (!interactions || interactions.length === 0 || isCancelled.current) return;
-    
-    // Global lock: Disable interaction triggers if gizmo is active (managed in Viewport via state)
     if (mesh.userData.isDragging) return;
 
-    // Global animation guard for click spam
-    if (trigger === "click" && isAnimating.current) return;
-    
     const relevantInts = interactions.filter(i => {
        if (trigger === "unhover") return i.trigger === "onHover" && i.revertOnLeave;
        if (trigger === "hover") return i.trigger === "onHover";
@@ -507,30 +534,52 @@ export function useInteractionRuntime() {
     });
 
     for (const int of relevantInts) {
-       if (int.conditions?.once && mesh.userData[`triggered_${int.id}`]) {
-          continue;
-       }
+       if (int.conditions?.once && mesh.userData[`triggered_${int.id}`]) continue;
        mesh.userData[`triggered_${int.id}`] = true;
 
-       if (trigger === "unhover") {
+       if (trigger === "click") {
           const state = stateMap.current.get(mesh.uuid);
-          if (state) {
-             if (state.originalColor) state.targetColor = state.originalColor.clone();
-             if (state.originalEmissive) state.targetEmissive = state.originalEmissive.clone();
-             if (state.originalScale) state.targetScale = state.originalScale.clone();
-             if (state.originalPosition) state.targetPosition = state.originalPosition.clone();
-             // Restore material properties
-             if (state.hasClonedMaterial && state.mesh.material) {
-               const mat = state.mesh.material as THREE.MeshStandardMaterial;
-               if (state.originalRoughness !== undefined) mat.roughness = state.originalRoughness;
-               if (state.originalMetalness !== undefined) mat.metalness = state.originalMetalness;
-             }
+          // Deterministic Toggle Logic
+          if (state && state.activeInteractions.has(int.id)) {
+             revertInteraction(mesh, int.id);
+          } else {
+             runSequence(mesh, int.actions || [], trigger, int.id);
           }
+       } else if (trigger === "unhover") {
+          revertInteraction(mesh, int.id);
        } else {
-          runSequence(mesh, int.actions || [], trigger);
+          runSequence(mesh, int.actions || [], trigger, int.id);
        }
     }
   };
 
-  return { runInteraction };
-}
+  const resetAll = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      if (audioRef.current.src.startsWith("blob:")) URL.revokeObjectURL(audioRef.current.src);
+    }
+    if (audioFadeRaf.current) cancelAnimationFrame(audioFadeRaf.current);
+    
+    clearLabels();
+    setEnvironmentPreset("city"); 
+    isSceneReady.current = false;
+
+    stateMap.current.forEach((state) => {
+      state.activeInteractions.clear();
+      state.activationOrder = [];
+      state.interactionData.clear();
+      state.currentAudioOwner = null;
+      state.labelsByInteraction.clear();
+      rebuildMeshState(state.mesh);
+      if (state.mixer) state.mixer.stopAllAction();
+      state.mesh.userData.isAnimating = false;
+      runningMap.current.set(state.mesh.uuid, false);
+    });
+  };
+
+  const setIsSceneReady = (val: boolean) => {
+    isSceneReady.current = val;
+  };
+
+  return { runInteraction, resetAll, registerMesh, setIsSceneReady };
+};

@@ -5,7 +5,7 @@ export type CameraMode = 'free' | 'top' | 'side';
 
 export interface InteractionAction {
   id: string;
-  type: "highlight" | "glow" | "scale" | "camera_focus" | "audio" | "animation" | "info_panel" | "toggle" | "url" | "explode_view" | "material_swap" | "label_pin" | "particle_burst" | "reveal_hidden" | "set_environment";
+  type: "highlight" | "glow" | "scale" | "camera_focus" | "audio" | "animation" | "info_panel" | "toggle" | "url" | "material_swap" | "label_pin" | "particle_burst" | "reveal_hidden" | "set_environment";
   config: Record<string, any>;
 }
 
@@ -76,7 +76,7 @@ interface EditorState {
   updateInteraction: (interactionId: string, updates: Partial<Interaction>) => void;
   addAction: (interactionId: string, action: InteractionAction) => void;
   removeAction: (interactionId: string, actionId: string) => void;
-  updateAction: (interactionId: string, actionId: string, config: Record<string, any>) => void;
+  updateAction: (interactionId: string, actionId: string, config: Record<string, any>, noHistory?: boolean) => void;
   reorderAction: (interactionId: string, oldIndex: number, newIndex: number) => void;
   setInteractions: (rawInteractions: string | StoredInteractions | Record<string, Interaction[]>) => void;
   setCamera: (position: [number, number, number], target: [number, number, number]) => void;
@@ -240,17 +240,23 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   renameMesh: (meshId, newName) => set((state) => {
     const newInteractions = { ...state.interactions };
+    const oldName = state.primarySelectionName;
+
+    // 1. Migrate interactions keyed by ID
     if (newInteractions[meshId]) {
       newInteractions[newName] = newInteractions[meshId];
       delete newInteractions[meshId];
     }
     
-    // Also migration interaction key if it was the name
-    const primaryName = state.primarySelectionName === meshId ? newName : state.primarySelectionName;
+    // 2. Migrate interactions keyed by old name (if different from ID)
+    if (oldName && oldName !== meshId && newInteractions[oldName]) {
+      newInteractions[newName] = newInteractions[oldName];
+      delete newInteractions[oldName];
+    }
 
     return { 
       interactions: newInteractions, 
-      primarySelectionName: primaryName,
+      primarySelectionName: newName,
       isDirty: true 
     };
   }),
@@ -433,7 +439,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     };
   }),
 
-  updateAction: (interactionId, actionId, config) => set((state) => {
+  updateAction: (interactionId, actionId, config, noHistory = false) => set((state) => {
     const newInteractions = { ...state.interactions };
     let changed = false;
 
@@ -441,20 +447,32 @@ export const useEditorStore = create<EditorState>((set) => ({
     if (targetKey && newInteractions[targetKey]) {
       newInteractions[targetKey] = newInteractions[targetKey].map(i => {
         if (i.id === interactionId) {
-           changed = true;
-           return { 
-             ...i, 
-             actions: i.actions.map(a => a.id === actionId ? { ...a, config: { ...a.config, ...config } } : a)
-           };
+           const newActions = i.actions.map(a => {
+             if (a.id === actionId) {
+               changed = true;
+               return { ...a, config: { ...a.config, ...config } };
+             }
+             return a;
+           });
+           return { ...i, actions: newActions };
         }
         return i;
       });
     }
 
     if (!changed) return state;
-    return { 
+
+    const baseUpdate = { 
       interactions: newInteractions, 
-      isDirty: true,
+      isDirty: true
+    };
+
+    if (noHistory) {
+      return baseUpdate;
+    }
+
+    return { 
+      ...baseUpdate,
       history: {
         past: [...state.history.past, state.interactions].slice(-20),
         future: []

@@ -95,7 +95,7 @@ function MeshList({ url }: { url: string }) {
       <div className="flex-1 overflow-y-auto p-3 scrollbar-none space-y-1">
         {meshes.map((mesh: any) => {
           const isSelected = selectedMeshes.has(mesh.uuid);
-          const hasInteractions = interactions[mesh.uuid]?.length > 0;
+          const hasInteractions = (interactions[mesh.uuid]?.length > 0) || (interactions[mesh.name]?.length > 0);
           
           return (
             <button

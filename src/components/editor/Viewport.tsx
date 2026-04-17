@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, PerspectiveCamera, ContactShadows, Environment, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditorStore, RenderMode, CameraMode, Interaction } from "@/stores/editorStore";
+import { useViewerStore } from "@/stores/viewerStore";
 import { createClient } from "@/lib/supabase/client";
 import { useInteractionRuntime } from "@/hooks/useInteractionRuntime";
 import { EditorContextMenu } from "./EditorContextMenu";
@@ -52,7 +53,7 @@ const disposeMaterial = (material: THREE.Material | THREE.Material[]) => {
 
 // (IndividualMesh removed in favor of scene traversal for total stability and hierarchical correctness)
 
-function SceneManager({ url }: { url: string }) {
+function SceneManager({ url, meshMap }: { url: string, meshMap: React.RefObject<Record<string, THREE.Mesh>> }) {
   const { scene, nodes, animations } = useGLTF(url) as unknown as GLTFResult;
   const {
     selectMesh,
@@ -70,7 +71,6 @@ function SceneManager({ url }: { url: string }) {
     renameMesh
   } = useEditorStore();
   
-  const meshMap = useRef<Record<string, THREE.Mesh>>({});
   
   const { camera, controls, scene: threeScene } = useThree() as { camera: THREE.PerspectiveCamera, controls: any, scene: THREE.Scene };
 
@@ -83,7 +83,31 @@ function SceneManager({ url }: { url: string }) {
     }
   }, [animations]);
 
-  const { runInteraction } = useInteractionRuntime();
+  const { runInteraction, resetAll, registerMesh, setIsSceneReady } = useInteractionRuntime();
+
+  // 1. Static Initialization Barrier (Precompute once after load)
+  useEffect(() => {
+    if (!scene) return;
+    
+    // Canonical Statics Phase
+    scene.traverse((node: any) => {
+      if (node.isMesh) {
+        registerMesh(node);
+      }
+    });
+
+    // Enforcement: Guard against mid-load interactions
+    setIsSceneReady(true);
+    
+    return () => setIsSceneReady(false);
+  }, [scene, registerMesh, setIsSceneReady]);
+
+  // Reset all meshes when leaving preview mode
+  useEffect(() => {
+    if (!previewMode) {
+      resetAll();
+    }
+  }, [previewMode, resetAll]);
 
   const focusSelection = () => {
     const selectedIds = useEditorStore.getState().selectedMeshes;
@@ -92,7 +116,7 @@ function SceneManager({ url }: { url: string }) {
     const box = new THREE.Box3();
     let hasValid = false;
     selectedIds.forEach(uuid => {
-      const mesh = meshMap.current[uuid];
+      const mesh = meshMap.current?.[uuid];
       if (mesh) {
         box.expandByObject(mesh);
         hasValid = true;
@@ -141,11 +165,10 @@ function SceneManager({ url }: { url: string }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [primarySelection]);
 
-  // 5. Hierarchy Synchronization & Overrides
+  // 5. Hierarchy Synchronization & Overrides (Visibility & Mode)
   useEffect(() => {
     if (!scene) return;
     
-    // Stable synchronization loop
     scene.traverse((node: any) => {
       if (node.isMesh) {
         // Apply Visibility (Isolation / Hiding)
@@ -155,38 +178,70 @@ function SceneManager({ url }: { url: string }) {
         node.visible = isVisible;
 
         // Apply Render Mode Materials
+        if (!node.userData.originalMaterial) node.userData.originalMaterial = node.material;
+        const original = node.userData.originalMaterial;
+        let nextMaterial = original;
+
         if (renderMode === 'solid') {
-           if (!node.userData.originalMaterial) node.userData.originalMaterial = node.material;
-           disposeMaterial(node.material);
-           node.material = new THREE.MeshStandardMaterial({ color: '#888888', roughness: 0.5, metalness: 0 });
+          if (node.material.userData?.type === 'vorld_solid') {
+            nextMaterial = node.material;
+          } else {
+            nextMaterial = new THREE.MeshStandardMaterial({ color: '#888888', roughness: 0.5, metalness: 0 });
+            nextMaterial.userData.type = 'vorld_solid';
+          }
         } else if (renderMode === 'wireframe') {
-           if (!node.userData.originalMaterial) node.userData.originalMaterial = node.material;
-           disposeMaterial(node.material);
-           node.material = (node.userData.originalMaterial || node.material).clone();
-           node.material.wireframe = true;
-        } else {
-           if (node.userData.originalMaterial) {
-              disposeMaterial(node.material);
-              node.material = node.userData.originalMaterial;
-           }
+          if (node.material.userData?.type === 'vorld_wireframe') {
+            nextMaterial = node.material;
+          } else {
+            nextMaterial = original.clone();
+            nextMaterial.wireframe = true;
+            nextMaterial.userData.type = 'vorld_wireframe';
+          }
         }
 
-        // Apply Selection Highlighting (Emissive Glow Fallback)
-        const isSelected = selectedMeshes.has(node.uuid);
-        if (isSelected) {
-           node.material.emissive = node.material.emissive || new THREE.Color(0,0,0);
-           node.material.emissive.set('#10b981');
-           node.material.emissiveIntensity = 1.0; // Brighter for certainty
-        } else if (node.material.emissive) {
-           node.material.emissive.set('#000000');
-           node.material.emissiveIntensity = 0;
+        if (node.material !== nextMaterial) {
+          // Only dispose if it's a temporary material we created
+          if (node.material.userData?.type === 'vorld_solid' || node.material.userData?.type === 'vorld_wireframe') {
+            disposeMaterial(node.material);
+          }
+          node.material = nextMaterial;
         }
 
-        // Setup mesh map for focus/interactivity
-        meshMap.current[node.uuid] = node;
+        // Populate mesh map for other effects/interactions
+        if (meshMap.current) {
+          meshMap.current[node.uuid] = node;
+        }
       }
     });
-  }, [scene, hiddenMeshes, isolatedId, renderMode, selectedMeshes]);
+
+    // Trigger a selection sync after meshMap is populated/updated
+    syncSelection();
+  }, [scene, hiddenMeshes, isolatedId, renderMode]);
+
+  // 6. Targeted Selection Highlighting (Non-traversing)
+  const syncSelection = () => {
+    const meshes = meshMap.current;
+    if (!meshes) return;
+
+    Object.values(meshes).forEach((node: THREE.Mesh) => {
+      const isSelected = selectedMeshes.has(node.uuid);
+      const mat = node.material as THREE.MeshStandardMaterial;
+      if (!mat) return;
+
+      if (isSelected) {
+         if (!mat.emissive) mat.emissive = new THREE.Color(0,0,0);
+         mat.emissive.set('#10b981');
+         mat.emissiveIntensity = 1.0;
+      } else if (mat.emissive && mat.emissive.getHex() !== 0x000000) {
+         mat.emissive.set('#000000');
+         mat.emissiveIntensity = 0;
+      }
+    });
+  };
+
+  useEffect(() => {
+    syncSelection();
+  }, [selectedMeshes]);
 
   return (
     <group dispose={null}>
@@ -237,21 +292,59 @@ function SceneManager({ url }: { url: string }) {
   );
 }
 
+function LabelPin({ label, mesh }: { label: any, mesh: THREE.Mesh }) {
+  const pos = useMemo(() => new THREE.Vector3(...label.position), [label.position]);
+
+  return (
+    <Html
+      key={label.id}
+      position={pos}
+      occlude
+      center
+      pointerEvents="none"
+    >
+      <div 
+        className="px-2 py-1 rounded shadow-xl border border-white/10 flex items-center gap-2 backdrop-blur-md pointer-events-none"
+        style={{ 
+          backgroundColor: label.backgroundColor + 'cc' || 'rgba(0,0,0,0.8)',
+          fontSize: `${label.fontSize}px`
+        }}
+      >
+        <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+        <span className="text-white font-medium tracking-tight whitespace-nowrap">{label.text}</span>
+      </div>
+    </Html>
+  );
+}
+
+// Sub-component for Labels to provide spatially-anchored 3D tags
+function LabelsLayer({ meshMap }: { meshMap: React.RefObject<Record<string, THREE.Mesh>> }) {
+  const labels = useViewerStore((state) => state.labels);
+
+  return (
+    <>
+      {labels.map((label) => {
+        const mesh = meshMap.current?.[label.meshUuid];
+        if (!mesh) return null;
+        return <LabelPin key={label.id} label={label} mesh={mesh} />;
+      })}
+    </>
+  );
+}
+
 // Sub-component for Highlights to optimize renders
-function SelectionHighlights() {
+function SelectionHighlights({ meshMap }: { meshMap: React.RefObject<Record<string, THREE.Mesh>> }) {
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
-  const { scene } = useThree();
   const [selectedObjects, setSelectedObjects] = useState<THREE.Mesh[]>([]);
 
   useEffect(() => {
     const next: THREE.Mesh[] = [];
-    scene.traverse((child) => {
-       if (child.type === 'Mesh' && selectedMeshes.has(child.uuid)) {
-         next.push(child as THREE.Mesh);
-       }
+    selectedMeshes.forEach(uuid => {
+      const mesh = meshMap.current?.[uuid];
+      if (mesh) next.push(mesh);
     });
     setSelectedObjects(next);
-  }, [selectedMeshes, scene]);
+  }, [selectedMeshes, meshMap]);
 
   // UseMemo for stable, scale-aware Inverted Hull Outlines
   const hulls = useMemo(() => {
@@ -304,9 +397,10 @@ function SelectionHighlights() {
 export function Viewport() {
   const modelPath = useEditorStore((state) => state.modelPath);
   const savedCamera = useEditorStore((state) => state.camera);
-  const setSelectedMeshes = useEditorStore((state) => state.setSelectedMeshes);
   const previewMode = useEditorStore((state) => state.previewMode);
-  const targetName = useEditorStore((state) => state.primarySelectionName);
+  const environmentPreset = useViewerStore((state) => state.environmentPreset) as any;
+  
+  const meshMap = useRef<Record<string, THREE.Mesh>>({});
 
   const modelUrl = useMemo(() => {
     if (!modelPath) return null;
@@ -364,8 +458,9 @@ export function Viewport() {
         />
 
         <Suspense fallback={null}>
-          {modelUrl && <SceneManager url={modelUrl} />}
-          {!previewMode && <SelectionHighlights />}
+          {modelUrl && <SceneManager url={modelUrl} meshMap={meshMap} />}
+          {!previewMode && <SelectionHighlights meshMap={meshMap} />}
+          {previewMode && <LabelsLayer meshMap={meshMap} />}
           <CameraRig />
 
           <ContactShadows
@@ -376,7 +471,10 @@ export function Viewport() {
             far={10}
             resolution={1024}
           />
-          <Environment preset="city" />
+          <Environment 
+            key={environmentPreset} 
+            preset={environmentPreset || "city"} 
+          />
         </Suspense>
 
         <OrbitControls
